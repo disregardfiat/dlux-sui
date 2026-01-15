@@ -27,6 +27,7 @@ Caddy is configured as a reverse proxy server routing requests to backend servic
 | `gql` | DGraph Service | `3003` | GraphQL API for dApp queries |
 | `walrus` | Walrus Service | `3002` | Blob storage for dApps and media |
 | `test` | Vue Frontend | `3006` | Main Vue.js application |
+| `webhook` | Webhook Service | `3008` | GitHub webhook receiver for automated deployments |
 | `*.walrus.dlux.io` | Sandbox Service | `3007` | Wildcard subdomain for sandboxed dApps with PWA support |
 
 ## Service Endpoints
@@ -37,6 +38,7 @@ Caddy is configured as a reverse proxy server routing requests to backend servic
 - **SUI Service:** `https://sui.dlux.io`
 - **Walrus Service:** `https://walrus.dlux.io`
 - **Presence Service:** `https://tincan.dlux.io` (HTTP) + `wss://tincan.dlux.io` (WebSocket)
+- **Webhook Service:** `https://webhook.dlux.io/webhook` (GitHub webhook endpoint)
 
 ### Direct Service Ports (for testing)
 - `localhost:3000` - Vue Frontend
@@ -45,6 +47,8 @@ Caddy is configured as a reverse proxy server routing requests to backend servic
 - `localhost:3003` - DGraph Service (GraphQL)
 - `localhost:3004` - Presence Service (HTTP)
 - `localhost:3005` - Presence Service (WebSocket/Hocuspocus)
+- `localhost:3007` - Sandbox Service
+- `localhost:3008` - Webhook Service
 
 ## Caddy Configuration
 
@@ -70,6 +74,10 @@ walrus {
 
 test.dlux.io {
     reverse_proxy localhost:3006
+}
+
+webhook.dlux.io {
+    reverse_proxy localhost:3008
 }
 
 # Wildcard subdomain for sandboxed dApps
@@ -126,6 +134,7 @@ Each service provides a `/health` endpoint:
 - `https://walrus.dlux.io/health` - Walrus Service health check
 - `https://gql.dlux.io/health` - DGraph Service health check
 - `https://tincan.dlux.io/health` - Presence Service health check
+- `https://webhook.dlux.io/health` - Webhook Service health check
 
 ### GraphQL Playground
 
@@ -192,6 +201,7 @@ Backend Services (Node.js/TypeScript)
 - ✅ **Presence Service**: Running on ports 3004/3005 (PM2)
 - ✅ **Vue Frontend**: Running on port 3006 (PM2)
 - ✅ **Sandbox Service**: Running on port 3007 (PM2) - dApp sandbox with PWA support
+- ⏳ **Webhook Service**: Port 3008 (PM2) - GitHub webhook receiver for automated deployments
 - ⚠️ **Cloudflare DNS Module**: Caddy needs to be rebuilt with Cloudflare DNS module for wildcard SSL (see `docs/cloudflare-caddy-build-issue.md`)
 
 ### Testing Results
@@ -260,6 +270,7 @@ pm2 startup                 # Enable auto-start on boot (if needed)
 - `presence-service` - Ports 3004/3005
 - `vue-frontend` - Port 3006
 - `sandbox-service` - Port 3007
+- `webhook-service` - Port 3008
 
 ### Next Steps
 

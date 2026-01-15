@@ -5,7 +5,7 @@
 set -e
 
 REPO_DIR="/home/ubuntu/dlux-sui"
-SERVICES=("sui-service" "walrus-service" "dgraph-service" "presence-service" "pm-service")
+SERVICES=("sui-service" "walrus-service" "dgraph-service" "presence-service" "pm-service" "webhook-service")
 FRONTEND=("vue-frontend" "sandbox-service")
 
 cd "$REPO_DIR" || exit 1

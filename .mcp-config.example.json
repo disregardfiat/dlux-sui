@@ -6,10 +6,10 @@
         "ssh-mcp",
         "-y",
         "--",
-        "--host=157.180.53.238",
+        "--host=your-server-ip",
         "--port=22",
         "--user=ubuntu",
-        "--key=/home/jr/wrt",
+        "--key=/path/to/your/ssh/key",
         "--timeout=60000",
         "--maxChars=1000"
       ]
