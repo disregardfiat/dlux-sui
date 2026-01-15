@@ -1,0 +1,242 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dgraph-alpha
+  namespace: dlux-sui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dgraph-alpha
+  template:
+    metadata:
+      labels:
+        app: dgraph-alpha
+    spec:
+      containers:
+      - name: dgraph-alpha
+        image: dgraph/dgraph:latest
+        ports:
+        - containerPort: 8080
+        - containerPort: 9080
+        command:
+        - dgraph
+        - alpha
+        - --my=dgraph-alpha:7080
+        - --zero=dgraph-zero:5080
+        - --lru_mb=2048
+        volumeMounts:
+        - name: dgraph-storage
+          mountPath: /dgraph
+        env:
+        - name: DGRAPH_ALPHA_SECURITY_WHITELIST
+          value: "0.0.0.0/0"
+      volumes:
+      - name: dgraph-storage
+        persistentVolumeClaim:
+          claimName: dgraph-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sui-service
+  namespace: dlux-sui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sui-service
+  template:
+    metadata:
+      labels:
+        app: sui-service
+    spec:
+      containers:
+      - name: sui-service
+        image: dlux-sui/sui-service:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
+        - name: SUI_NETWORK
+          value: "mainnet"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: dlux-sui-secrets
+              key: jwt-secret
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: walrus-service
+  namespace: dlux-sui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: walrus-service
+  template:
+    metadata:
+      labels:
+        app: walrus-service
+    spec:
+      containers:
+      - name: walrus-service
+        image: dlux-sui/walrus-service:latest
+        ports:
+        - containerPort: 3002
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3002"
+        - name: WALRUS_BASE_URL
+          value: "https://walrus-mainnet.mrgnlabs.xyz"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dgraph-service
+  namespace: dlux-sui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dgraph-service
+  template:
+    metadata:
+      labels:
+        app: dgraph-service
+    spec:
+      containers:
+      - name: dgraph-service
+        image: dlux-sui/dgraph-service:latest
+        ports:
+        - containerPort: 3003
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3003"
+        - name: DGRAPH_HOST
+          value: "dgraph-alpha.dlux-sui.svc.cluster.local:9080"
+        - name: DGRAPH_USER
+          valueFrom:
+            secretKeyRef:
+              name: dgraph-secrets
+              key: username
+        - name: DGRAPH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dgraph-secrets
+              key: password
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presence-service
+  namespace: dlux-sui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: presence-service
+  template:
+    metadata:
+      labels:
+        app: presence-service
+    spec:
+      containers:
+      - name: presence-service
+        image: dlux-sui/presence-service:latest
+        ports:
+        - containerPort: 3004
+        - containerPort: 3005
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3004"
+        - name: HOCUSPOCUS_PORT
+          value: "3005"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3004
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3004
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vue-app
+  namespace: dlux-sui
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vue-app
+  template:
+    metadata:
+      labels:
+        app: vue-app
+    spec:
+      containers:
+      - name: vue-app
+        image: dlux-sui/vue-app:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: NODE_ENV
+          value: "production"

@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "ssh-mcp": {
+      "command": "npx",
+      "args": [
+        "ssh-mcp",
+        "-y",
+        "--",
+        "--host=157.180.53.238",
+        "--port=22",
+        "--user=ubuntu",
+        "--key=/home/jr/wrt",
+        "--timeout=60000",
+        "--maxChars=1000"
+      ]
+    }
+  }
+}

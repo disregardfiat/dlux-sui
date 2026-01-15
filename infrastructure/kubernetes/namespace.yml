@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dlux-sui
+  labels:
+    name: dlux-sui
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dgraph-pvc
+  namespace: dlux-sui
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi

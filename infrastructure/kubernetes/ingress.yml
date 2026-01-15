@@ -1,0 +1,88 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dlux-sui-ingress
+  namespace: dlux-sui
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - dlux-sui.com
+    - "*.dlux-sui.com"
+    secretName: dlux-sui-tls
+  rules:
+  # Main application
+  - host: dlux-sui.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vue-app
+            port:
+              number: 80
+
+  # GraphQL API
+  - host: api.dlux-sui.com
+    http:
+      paths:
+      - path: /graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: dgraph-service
+            port:
+              number: 3003
+
+  # SUI Service API
+  - host: sui.dlux-sui.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sui-service
+            port:
+              number: 3001
+
+  # Walrus Service API
+  - host: walrus.dlux-sui.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: walrus-service
+            port:
+              number: 3002
+
+  # Presence Service
+  - host: presence.dlux-sui.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: presence-service
+            port:
+              number: 3004
+
+  # Wildcard subdomain for sandbox (requires nginx-ingress controller)
+  - host: "*.dlux-sui.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sandbox-service  # Would need to be implemented
+            port:
+              number: 3006
