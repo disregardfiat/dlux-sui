@@ -1,0 +1,11 @@
+# Docker Compose override for Sui Devnet
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.devnet.yml up
+
+version: '3.8'
+
+services:
+  sui-service:
+    environment:
+      - SUI_NETWORK=devnet
+      - SUI_RPC_URL=https://fullnode.devnet.sui.io:443
+      - SUI_FAUCET_URL=https://faucet.devnet.sui.io/gas

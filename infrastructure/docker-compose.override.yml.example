@@ -1,0 +1,28 @@
+# Docker Compose Override for Development
+# Copy this file to docker-compose.override.yml and customize as needed
+# This file is automatically merged with docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Override ports if they conflict with local services
+  dgraph-service:
+    ports:
+      - "3003:3003"  # Change if port 3003 is in use locally
+    environment:
+      - DGRAPH_HOST=dgraph-alpha:9080
+      # Uncomment to disable DGraph connection (use in-memory mode)
+      # - DGRAPH_HOST=
+
+  walrus-service:
+    ports:
+      - "3002:3002"
+    environment:
+      # Uncomment to disable Walrus network connection
+      # - WALRUS_BASE_URL=
+      # Uncomment to disable Seal service connection
+      # - SEAL_BASE_URL=
+
+  sui-service:
+    ports:
+      - "3001:3001"

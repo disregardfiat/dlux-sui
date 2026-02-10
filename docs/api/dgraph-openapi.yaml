@@ -1,0 +1,452 @@
+openapi: 3.0.3
+info:
+  title: DGraph Service API
+  description: |
+    Off-chain and social data. All social interactions (posts, feed, interactions),
+    prediction markets (list, bets, payouts), governance variables, subscription status,
+    location preferences and spots, ad campaigns/impressions/analytics, and safety
+    run through this service (read/write from Dgraph or in-memory fallback).
+  version: 1.0.0
+servers:
+  - url: http://localhost:3003
+    description: Local default
+  - url: https://gql.dlux.io
+    description: Test/production
+
+tags:
+  - name: health
+  - name: social
+  - name: subscription
+  - name: governance
+  - name: markets
+  - name: location
+  - name: campaigns
+  - name: impressions
+  - name: safety
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Service health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, example: ok }
+                  timestamp: { type: string, format: date-time }
+
+  /social/posts:
+    get:
+      tags: [social]
+      summary: Get feed (social posts)
+      parameters:
+        - name: author
+          in: query
+          schema: { type: string }
+        - name: dappId
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: List of posts / feed
+    post:
+      tags: [social]
+      summary: Create post (signed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author, content, signature]
+              properties:
+                author: { type: string }
+                content: { type: string }
+                signature: { type: string }
+                dappId: { type: string }
+                contentType: { type: string, default: text }
+      responses:
+        '201':
+          description: Post created
+        '400':
+          description: Missing author, content, or signature
+        '401':
+          description: Invalid signature
+
+  /social/posts/{id}:
+    get:
+      tags: [social]
+      summary: Get post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Post
+        '404':
+          description: Post not found
+
+  /social/interactions:
+    post:
+      tags: [social]
+      summary: Create interaction (like, repost, reply, etc.)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, enum: [like, dislike, repost, quote, reply] }
+                author: { type: string }
+                targetId: { type: string }
+                targetType: { type: string }
+                content: { type: string }
+                signature: { type: string }
+      responses:
+        '201':
+          description: Interaction created
+        '400':
+          description: Bad request
+
+  /subscription:
+    post:
+      tags: [subscription]
+      summary: Create platform subscription (subscriber pays foundation)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subscriber, paymentTxId]
+              properties:
+                subscriber: { type: string }
+                paymentTxId: { type: string }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Subscription created
+        '400':
+          description: subscriber and paymentTxId required
+
+  /subscription/status:
+    get:
+      tags: [subscription]
+      summary: Get subscription status
+      parameters:
+        - name: subscriber
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: active, subscriptions, expiresAt
+        '400':
+          description: subscriber query required
+
+  /governance/variables:
+    get:
+      tags: [governance]
+      summary: Get all governance variables
+      responses:
+        '200':
+          description: variables (foundationShare, pmFundShare, etc.)
+
+  /governance/variables/{name}:
+    get:
+      tags: [governance]
+      summary: Get one variable
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Variable
+        '404':
+          description: Variable not found
+
+  /governance/markets:
+    get:
+      tags: [governance]
+      summary: Get governance markets
+      responses:
+        '200':
+          description: markets array
+
+  /markets/high-payout:
+    get:
+      tags: [markets]
+      summary: List high-payout (open) prediction markets
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: markets, limit
+
+  /markets/dapp/{dappId}:
+    get:
+      tags: [markets]
+      summary: Active markets for a dApp
+      parameters:
+        - name: dappId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: markets array
+
+  /markets/payouts/{owner}:
+    get:
+      tags: [markets]
+      summary: Payout balance for owner
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: total (and per-market if applicable)
+
+  /markets:
+    post:
+      tags: [markets]
+      summary: Create prediction market (returns tx id; on-chain creation separate)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dappId: { type: string }
+                safetyMetric: { type: string }
+      responses:
+        '200':
+          description: transactionId
+
+  /markets/{marketId}/bets:
+    post:
+      tags: [markets]
+      summary: Place bet (returns tx id; on-chain bet separate)
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bettor: { type: string }
+                side: { type: string, enum: [safe, unsafe] }
+                amount: { type: number }
+      responses:
+        '200':
+          description: transactionId
+
+  /safety/dapp/{dappId}:
+    get:
+      tags: [safety]
+      summary: Safety status for dApp (PM-based)
+      parameters:
+        - name: dappId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: status, activeMarkets, etc.
+
+  /location/preferences:
+    get:
+      tags: [location]
+      summary: Get location preferences
+      parameters:
+        - name: user
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: preferences
+    post:
+      tags: [location]
+      summary: Update location preferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user: { type: string }
+                enabled: { type: boolean }
+                precision: { type: string }
+                subscribedSpots: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: Updated
+
+  /location/spots/popular:
+    get:
+      tags: [location]
+      summary: Popular spots
+      responses:
+        '200':
+          description: spots array
+
+  /location/spots/subscribe:
+    post:
+      tags: [location]
+      summary: Subscribe to spot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user: { type: string }
+                spotId: { type: string }
+      responses:
+        '200':
+          description: Subscribed
+
+  /campaigns:
+    get:
+      tags: [campaigns]
+      summary: List campaigns
+      parameters:
+        - name: advertiser
+        - name: status
+      responses:
+        '200':
+          description: campaigns
+    post:
+      tags: [campaigns]
+      summary: Create campaign
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                advertiser: { type: string }
+                title: { type: string }
+                targetUrl: { type: string }
+                placements: { type: array, items: { type: string } }
+                bid: { type: number }
+                totalBudget: { type: number }
+      responses:
+        '201':
+          description: campaign
+
+  /campaigns/{id}:
+    get:
+      tags: [campaigns]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: campaign
+    delete:
+      tags: [campaigns]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: cancelled
+
+  /impressions:
+    post:
+      tags: [impressions]
+      summary: Record ad impression
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                adId: { type: string }
+                contentId: { type: string }
+                zkProof: { type: object }
+                proofHash: { type: string }
+                encryptedViewer: { type: string }
+                blockHeader: { type: string }
+      responses:
+        '201':
+          description: impression
+    get:
+      tags: [impressions]
+      parameters:
+        - name: adId
+        - name: contentId
+        - name: verified
+      responses:
+        '200':
+          description: impressions list
+
+  /ads/select:
+    post:
+      tags: [campaigns]
+      summary: Select ad for placement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                placement: { type: string }
+                contentId: { type: string }
+      responses:
+        '200':
+          description: selected ad
+
+  /analytics/campaign/{campaignId}:
+    get:
+      tags: [campaigns]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: analytics
+  /analytics/advertiser/{advertiser}:
+    get:
+      tags: [campaigns]
+      parameters:
+        - name: advertiser
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: analytics

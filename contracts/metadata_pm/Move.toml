@@ -1,0 +1,11 @@
+[package]
+name = "dlux_metadata_pm"
+version = "1.0.0"
+edition = "2024.beta"
+published-at = "0x5bc3f9d6132ba769548d329498c8dcb0d84a2b979a5dd9554d05fd1763fd3b54"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.59.1" }
+
+[addresses]
+dlux = "0x5bc3f9d6132ba769548d329498c8dcb0d84a2b979a5dd9554d05fd1763fd3b54"

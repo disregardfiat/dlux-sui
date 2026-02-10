@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>360° Gallery Remix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; background: #0b0f1a; color: #fff; }
+      .container { max-width: 900px; margin: 2rem auto; padding: 1rem; }
+      .card { background: #141b2d; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+      input, textarea, button { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+      .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+      .row > div { flex: 1 1 260px; }
+      .asset { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0; }
+      .asset:last-child { border-bottom: none; }
+      .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    </style>
+    <script src="/nav-script.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>360° Gallery Remix</h1>
+      <p>Bring your own 360° images and generate the Sui metadata needed for the viewer.</p>
+
+      <div class="card">
+        <h3>Add Image URLs</h3>
+        <textarea id="imageUrls" rows="4" placeholder="Paste one URL per line"></textarea>
+        <button id="addUrls">Add URLs</button>
+      </div>
+
+      <div class="card">
+        <h3>Gallery Assets</h3>
+        <div id="assetList">No assets yet.</div>
+      </div>
+
+      <div class="card">
+        <h3>Generated Metadata</h3>
+        <textarea id="metadataOutput" rows="12" readonly></textarea>
+        <div class="actions">
+          <button id="copyMetadata">Copy JSON</button>
+          <button id="backToGallery">Back to Gallery</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const assets = [];
+      const assetList = document.getElementById('assetList');
+      const metadataOutput = document.getElementById('metadataOutput');
+
+      function renderAssets() {
+        if (!assets.length) {
+          assetList.textContent = 'No assets yet.';
+        } else {
+          assetList.innerHTML = assets.map((asset, index) => `
+            <div class="asset">
+              <strong>${asset.title || 'Untitled ' + (index + 1)}</strong>
+              <div>${asset.url}</div>
+            </div>
+          `).join('');
+        }
+        updateMetadata();
+      }
+
+      function updateMetadata() {
+        const navigation = assets.length > 1
+          ? assets.map((asset, index) => ({
+              fromIndex: index,
+              toIndex: (index + 1) % assets.length,
+              position: { phi: 45, theta: 90, radius: 8 },
+              label: `To ${assets[(index + 1) % assets.length]?.title || 'Next'}`
+            }))
+          : [];
+
+        const metadata = {
+          app: 'dlux-sui/360gallery',
+          format: '360-gallery',
+          assets,
+          navigation
+        };
+        metadataOutput.value = JSON.stringify(metadata, null, 2);
+      }
+
+      document.getElementById('addUrls').addEventListener('click', () => {
+        const urls = document.getElementById('imageUrls').value
+          .split('\\n')
+          .map((url) => url.trim())
+          .filter(Boolean);
+        urls.forEach((url, idx) => {
+          assets.push({
+            index: assets.length,
+            url,
+            thumb: url,
+            rotation: { x: 0, y: 0, z: 0 },
+            title: `Scene ${assets.length + 1}`
+          });
+        });
+        document.getElementById('imageUrls').value = '';
+        renderAssets();
+      });
+
+      document.getElementById('copyMetadata').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(metadataOutput.value);
+          alert('Copied metadata JSON to clipboard.');
+        } catch {
+          alert('Copy failed.');
+        }
+      });
+
+      document.getElementById('backToGallery').addEventListener('click', () => {
+        window.location.href = '/';
+      });
+
+      renderAssets();
+    </script>
+  </body>
+</html>

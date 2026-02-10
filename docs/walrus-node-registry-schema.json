@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Walrus Node Registry",
+  "description": "Schema for Walrus node registration JSON file",
+  "type": "object",
+  "required": [
+    "schema",
+    "operatorAddress",
+    "nodeAddress",
+    "endpoint",
+    "region",
+    "public",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "pattern": "^walrus-node-registry/v\\d+$",
+      "description": "Schema version identifier"
+    },
+    "operatorAddress": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$",
+      "description": "SUI address of the node operator (who gets revenue share)"
+    },
+    "nodeAddress": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$",
+      "description": "Public node identifier (wallet address for node)"
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public API endpoint for the node (HTTPS required)"
+    },
+    "region": {
+      "type": "string",
+      "description": "Geographic region (e.g., us-west, eu-central, asia-east)"
+    },
+    "public": {
+      "type": "boolean",
+      "description": "Whether node accepts public requests (true) or is private (false)"
+    },
+    "capacity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum concurrent requests the node can handle"
+    },
+    "version": {
+      "type": "string",
+      "description": "Node software version"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["zk-proofs", "ad-serving", "subscriber-passes", "content-serving"]
+      },
+      "description": "Supported features"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "storageCapacity": {
+          "type": "integer",
+          "description": "Storage capacity in bytes"
+        },
+        "bandwidth": {
+          "type": "integer",
+          "description": "Bandwidth in bytes per second"
+        },
+        "latency": {
+          "type": "integer",
+          "description": "Average latency in milliseconds"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the node"
+        }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]+$",
+      "description": "Signature of operatorAddress signing the JSON (excluding signature field)"
+    }
+  }
+}

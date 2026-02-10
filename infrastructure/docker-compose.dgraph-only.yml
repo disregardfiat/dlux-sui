@@ -1,0 +1,51 @@
+# DGraph database only — for PM2 deployments (e.g. test server).
+# Run from repo root: docker compose -f infrastructure/docker-compose.dgraph-only.yml up -d
+# Then dgraph-service and sui-service (PM2) use DGRAPH_HOST=localhost:9080.
+# (version is obsolete in Compose V2 and is ignored; removed to avoid warning.)
+
+networks:
+  dgraph-net:
+    driver: bridge
+
+services:
+  dgraph-zero:
+    image: dgraph/dgraph:latest
+    volumes:
+      - dgraph_zero:/dgraph
+    ports:
+      - "5080:5080"
+      - "8000:8000"
+    restart: unless-stopped
+    command: dgraph zero --my=dgraph-zero:5080
+    networks:
+      - dgraph-net
+
+  dgraph-alpha:
+    image: dgraph/dgraph:latest
+    volumes:
+      - dgraph_alpha:/dgraph
+      - ./backups:/backups
+      - ./exports:/exports
+    ports:
+      - "8080:8080"
+      - "9080:9080"
+    restart: unless-stopped
+    # --security whitelist: allow host (e.g. 172.20.0.1) to call /alter for deploy -dump reset
+    command: dgraph alpha --my=dgraph-alpha:7080 --zero=dgraph-zero:5080 --cache size-mb=1024 --security "whitelist=127.0.0.1,172.16.0.0/12,10.0.0.0/8"
+    environment:
+      - DGRAPH_ALPHA_BACKUP_PATH=/backups
+      - DGRAPH_ALPHA_EXPORT_PATH=/exports
+    depends_on:
+      - dgraph-zero
+    networks:
+      - dgraph-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  dgraph_zero:
+  dgraph_alpha:

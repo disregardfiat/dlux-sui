@@ -1,0 +1,18 @@
+# Docker Compose override for Sui Testnet
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.testnet.yml up
+#
+# Required: Set SUI_PACKAGE_ID to your deployed package ID (deploy contracts first).
+# Without it, the indexer is disabled.
+
+version: '3.8'
+
+services:
+  sui-service:
+    environment:
+      - SUI_NETWORK=testnet
+      - SUI_RPC_URL=https://fullnode.testnet.sui.io:443
+      - SUI_FAUCET_URL=https://faucet.testnet.sui.io/gas
+      # Set to your deployed package ID (e.g. 0x123...) - indexer disabled without it
+      - SUI_PACKAGE_ID=${SUI_PACKAGE_ID:-}
+      # stream = WebSocket subscribeEvent (lower CPU); poll = queryEvents every POLL_INTERVAL
+      - INDEXER_MODE=${INDEXER_MODE:-stream}

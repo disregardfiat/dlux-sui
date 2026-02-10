@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Coastal Bike Tour - 360 Gallery</title>
+    <meta name="description" content="360° gallery experience on Sui">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; background: #0b0f1a; color: #fff; }
+      .hud { position: fixed; top: 1rem; left: 1rem; z-index: 10; background: rgba(0,0,0,0.6); padding: 0.75rem 1rem; border-radius: 8px; max-width: 360px; }
+      .hud button { margin-right: 0.5rem; margin-top: 0.5rem; }
+      .comments { position: fixed; right: 1rem; top: 1rem; z-index: 10; background: rgba(0,0,0,0.6); padding: 0.75rem 1rem; border-radius: 8px; max-width: 360px; max-height: 80vh; overflow: auto; }
+      .comment { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0; }
+      .comment:last-child { border-bottom: none; }
+      .comment small { color: #aab; }
+      .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .tag { display: inline-block; background: #2b3757; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
+    </style>
+    <script>
+      window.dluxDappMeta = {
+        title: 'Coastal Bike Tour',
+        description: '360° gallery demo with remix support.',
+        tags: ['360', 'travel', 'vr'],
+        labels: ['remixable', 'gallery']
+      };
+    </script>
+    <script src="/wallet-script.js"></script>
+    <script src="/nav-script.js"></script>
+    <script src="/social-script.js"></script>
+  </head>
+  <body>
+    <div class="hud">
+      <div><span class="tag">DLUX Sui</span></div>
+      <h2 style="margin: 0.5rem 0 0;">Coastal Bike Tour</h2>
+      <p style="margin: 0.25rem 0;">360° gallery demo using injected wallet + social scripts.</p>
+      <div class="actions">
+        <button id="connectWallet">Connect Wallet</button>
+        <button id="addComment">Add Comment</button>
+        <button id="openRemix">Remix</button>
+      </div>
+      <div id="status" style="margin-top: 0.5rem; font-size: 0.85rem; color: #9fb0d3;"></div>
+    </div>
+
+    <div class="comments">
+      <h3 style="margin-top: 0;">Comments</h3>
+      <div id="commentList">Loading comments...</div>
+    </div>
+
+    <a-scene background="color: #0b0f1a">
+      <a-sky id="photo-sky" rotation="0 0 0"></a-sky>
+      <a-entity id="nav-points"></a-entity>
+      <a-entity camera look-controls position="0 1.6 0"></a-entity>
+    </a-scene>
+
+    <script>
+      const gallery = {
+        assets: [
+          {
+            index: 0,
+            url: 'QmWTgdKgG5Hps5voAvpvV4prZsEvnanCzYMDPTR8LVRPeM',
+            thumb: 'QmWTgdKgG5Hps5voAvpvV4prZsEvnanCzYMDPTR8LVRPeM',
+            rotation: { x: 0, y: 0, z: 0 },
+            title: 'Puerto Madero'
+          },
+          {
+            index: 1,
+            url: 'QmYVUfDUr3CRJjiq65r6b4esHKQe4EtVXLB46MxYqEpmAz',
+            thumb: 'QmYVUfDUr3CRJjiq65r6b4esHKQe4EtVXLB46MxYqEpmAz',
+            rotation: { x: 0, y: 0, z: 0 },
+            title: 'Ecological Reserve'
+          },
+          {
+            index: 2,
+            url: 'QmYuhY9qrH6PcmU8Qog2hNtFSj1JHmwZDNZ6w1psMBe43L',
+            thumb: 'QmYuhY9qrH6PcmU8Qog2hNtFSj1JHmwZDNZ6w1psMBe43L',
+            rotation: { x: 0, y: 0, z: 0 },
+            title: 'Waterfront'
+          }
+        ],
+        navigation: [
+          { fromIndex: 0, toIndex: 1, position: { phi: 45, theta: 90, radius: 8 }, label: 'Next: Reserve' },
+          { fromIndex: 1, toIndex: 2, position: { phi: 120, theta: 95, radius: 8 }, label: 'Next: Waterfront' },
+          { fromIndex: 2, toIndex: 0, position: { phi: -90, theta: 90, radius: 8 }, label: 'Back to Start' }
+        ]
+      };
+
+      const context = window.dluxSocial.getContext();
+      const statusEl = document.getElementById('status');
+      const commentList = document.getElementById('commentList');
+      const sky = document.getElementById('photo-sky');
+      const navRoot = document.getElementById('nav-points');
+      let currentIndex = 0;
+
+      const resolveUrl = (cid) => cid.startsWith('Qm') ? `https://ipfs.dlux.io/ipfs/${cid}` : cid;
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function loadPhoto(index) {
+        const asset = gallery.assets[index];
+        if (!asset) return;
+        currentIndex = index;
+        sky.setAttribute('src', resolveUrl(asset.url));
+        sky.setAttribute('rotation', `${asset.rotation.x} ${asset.rotation.y} ${asset.rotation.z}`);
+        renderNav();
+      }
+
+      function renderNav() {
+        navRoot.innerHTML = '';
+        gallery.navigation
+          .filter((nav) => nav.fromIndex === currentIndex)
+          .forEach((nav) => {
+            const marker = document.createElement('a-sphere');
+            marker.setAttribute('radius', '0.2');
+            marker.setAttribute('color', '#4CC3D9');
+            marker.setAttribute('position', polarToCartesian(nav.position));
+            marker.addEventListener('click', () => loadPhoto(nav.toIndex));
+            navRoot.appendChild(marker);
+          });
+      }
+
+      function polarToCartesian({ phi, theta, radius }) {
+        const radPhi = (phi * Math.PI) / 180;
+        const radTheta = (theta * Math.PI) / 180;
+        return {
+          x: radius * Math.sin(radTheta) * Math.cos(radPhi),
+          y: radius * Math.cos(radTheta),
+          z: radius * Math.sin(radTheta) * Math.sin(radPhi)
+        };
+      }
+
+      async function loadComments() {
+        try {
+          const res = await window.dluxSocial.listPosts({ dappId: context.dappId, limit: 50 });
+          const posts = res.posts || [];
+          commentList.innerHTML = posts.length
+            ? posts.map((post) => `
+                <div class="comment">
+                  <strong>@${post.author}</strong>
+                  <div>${post.content}</div>
+                  <small>${new Date(post.createdAt || Date.now()).toLocaleString()}</small>
+                </div>
+              `).join('')
+            : '<div class="comment">No comments yet.</div>';
+        } catch (error) {
+          commentList.innerHTML = '<div class="comment">Failed to load comments.</div>';
+        }
+      }
+
+      document.getElementById('connectWallet').addEventListener('click', async () => {
+        try {
+          const address = await window.dluxWallet.connect();
+          setStatus(address ? `Connected: ${address}` : 'Connected');
+        } catch (error) {
+          setStatus(error.message || 'Failed to connect');
+        }
+      });
+
+      document.getElementById('addComment').addEventListener('click', async () => {
+        const content = prompt('Leave a comment about this scene:');
+        if (!content) return;
+        try {
+          await window.dluxSocial.createPost({
+            content,
+            dappId: context.dappId,
+            contentType: 'text'
+          });
+          await loadComments();
+        } catch (error) {
+          setStatus(error.message || 'Failed to post comment');
+        }
+      });
+
+      document.getElementById('openRemix').addEventListener('click', () => {
+        window.location.href = '/remix';
+      });
+
+      loadPhoto(0);
+      loadComments();
+      setStatus(context.author ? `dApp by ${context.author}` : 'Local demo');
+    </script>
+  </body>
+</html>

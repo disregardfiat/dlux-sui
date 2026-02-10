@@ -1,0 +1,65 @@
+dlux.io {
+    handle_path /api/walrus/* {
+        reverse_proxy localhost:3002
+    }
+    handle {
+        reverse_proxy localhost:3006
+    }
+}
+
+www.dlux.io {
+    redir https://dlux.io{uri} permanent
+}
+
+test.dlux.io {
+    handle_path /api/walrus/* {
+        reverse_proxy localhost:3002
+    }
+    handle {
+        reverse_proxy localhost:3006
+    }
+}
+
+tincan.dlux.io {
+    reverse_proxy localhost:3004
+    reverse_proxy localhost:3005
+}
+
+sui.dlux.io {
+    reverse_proxy localhost:3001
+}
+
+gql.dlux.io {
+    reverse_proxy localhost:3003
+}
+
+walrus.dlux.io {
+    reverse_proxy localhost:3002
+}
+
+*.walrus.dlux.io {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    @metadata {
+        header User-Agent *bot*|*crawl*|*spider*|*slurp*|*google*|*bing*|*yandex*|*facebookexternalhit*|*Twitterbot*|*Discordbot*|*Slackbot*|*WhatsApp*|*LinkedInBot*|*Telegram*
+        path_regexp ^(?:/([a-zA-Z]{3,}))?/@([^/]+)/([^/]+)/?$
+    }
+    handle @metadata {
+        rewrite * /metadata?author={re.2}&permlink={re.3}&tag={re.1}
+        reverse_proxy localhost:3007
+    }
+    @walrus {
+        header Referer https://{labels.3}.walrus.dlux.io*
+    }
+    handle @walrus {
+        reverse_proxy /walrus/* localhost:3007
+    }
+    handle {
+        reverse_proxy localhost:3007
+    }
+}
+
+webhook.dlux.io {
+    reverse_proxy localhost:3011
+}

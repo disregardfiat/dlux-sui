@@ -1,0 +1,59 @@
+{
+  "name": "dlux-sui",
+  "version": "1.0.0",
+  "description": "Decentralized Metaverse Microservices Platform",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "frontend/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "ci": "npm run lint --workspaces --if-present && npm run test --workspaces --if-present && npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:check": "tsx tests/e2e/check-services.ts",
+    "test:e2e:full": "playwright test tests/e2e/*-full.spec.ts",
+    "test:e2e:full:ui": "playwright test tests/e2e/*-full.spec.ts --ui",
+    "test:e2e:testnet": "E2E_BASE_URL=https://test.dlux.io SUI_SERVICE_URL=https://sui.dlux.io DGRAPH_SERVICE_URL=https://gql.dlux.io WALRUS_SERVICE_URL=https://walrus.dlux.io SUI_RPC_URL=https://fullnode.testnet.sui.io:443 SUI_FAUCET_URL=https://faucet.testnet.sui.io/v2/gas playwright test",
+    "test:e2e:production": "E2E_BASE_URL=https://dlux.io SUI_SERVICE_URL=https://sui.dlux.io DGRAPH_SERVICE_URL=https://gql.dlux.io WALRUS_SERVICE_URL=https://dlux.io/api/walrus SUI_RPC_URL=https://fullnode.testnet.sui.io:443 playwright test --project=chromium",
+    "test:e2e:real-sui": "SUI_RPC_URL=https://fullnode.testnet.sui.io:443 SUI_FAUCET_URL=https://faucet.testnet.sui.io/v2/gas SUBSCRIPTION_PRICE_SUI=0.01 DGRAPH_SERVICE_URL=https://gql.dlux.io SUI_SERVICE_URL=https://sui.dlux.io WALRUS_SERVICE_URL=https://walrus.dlux.io playwright test tests/e2e/subscription-real-sui.spec.ts",
+    "slush:download": "node scripts/download-slush-extension.mjs",
+    "slush:address": "node scripts/slush-address.mjs",
+    "slush:setup": "node scripts/slush-setup.mjs",
+    "test:e2e:slush": "E2E_BASE_URL=https://test.dlux.io SUI_SERVICE_URL=https://sui.dlux.io DGRAPH_SERVICE_URL=https://gql.dlux.io WALRUS_SERVICE_URL=https://walrus.dlux.io playwright test tests/e2e/wallet-login-real.spec.ts tests/e2e/full-journey-real.spec.ts --project=chromium-slush --workers=1",
+    "deploy:contracts:testnet": "bash tests/e2e/scripts/deploy-contracts-testnet.sh",
+    "test:e2e:full:debug": "playwright test tests/e2e/*-full.spec.ts --debug",
+    "test:e2e:browser": "playwright test tests/e2e/content-creation-full.spec.ts tests/e2e/user-journey-full.spec.ts tests/e2e/subscribe-journey-full.spec.ts tests/e2e/click-bundling-full.spec.ts tests/e2e/revenue-distribution-full.spec.ts tests/e2e/ad-journey-browser.spec.ts",
+    "docker:up": "cd infrastructure && docker-compose up -d",
+    "docker:down": "cd infrastructure && docker-compose down",
+    "docker:logs": "cd infrastructure && docker-compose logs -f",
+    "docker:e2e": "cd infrastructure && docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d",
+    "dev": "npm run dev --workspaces",
+    "dev:all": "npm run dev --workspaces",
+    "lint": "npm run lint --workspaces",
+    "docker:build": "docker compose -f infrastructure/docker-compose.yml build",
+    "k8s:deploy": "kubectl apply -f infrastructure/kubernetes/"
+  },
+  "devDependencies": {
+    "@mysten/sui": "^1.45.2",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "crx-util": "^1.0.0",
+    "eslint": "^8.0.0",
+    "playwright": "^1.57.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

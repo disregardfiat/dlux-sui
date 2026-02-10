@@ -1,0 +1,497 @@
+# DLUX-SUI Dgraph Schema
+# This schema defines the data structure for the decentralized social platform
+
+# User entities
+type User {
+  suiAddress: string @index(hash) @upsert
+  vanityAddress: string @index(hash)
+  displayName: string
+  bio: string
+  avatar: string
+  banner: string
+  website: string
+  location: string
+  verified: bool
+  linkedZKPs: [ZKLink]
+  publicKeys: [string]
+  createdAt: datetime @index(hour)
+  updatedAt: datetime @index(hour)
+}
+
+type ZKLink {
+  provider: string @index(hash)
+  proof: string
+  linkedAt: datetime @index(hour)
+}
+
+# Vanity namespace management
+type VanityNamespace {
+  address: string @index(hash) @upsert
+  owner: string @index(hash)
+  price: float
+  purchasedAt: datetime @index(hour)
+  expiresAt: datetime
+  verified: bool
+  profile: UserProfile
+}
+
+type UserProfile {
+  owner: string @index(hash)
+  suinsName: string @index(hash)
+  displayName: string
+  bio: string
+  avatar: string
+  banner: string
+  website: string
+  location: string
+  socialLinksJson: string
+  metadataJson: string
+  updatedAt: datetime @index(hour)
+}
+
+# dApp entities
+# manifestJson stores full manifest (incl. pathMap) when resolved from walrus:blobId; query layer prefers it over manifest
+type DApp {
+  id: string @index(hash) @upsert
+  name: string @index(fulltext)
+  description: string @index(fulltext)
+  owner: string @index(hash)
+  vanityNamespace: string @index(hash)
+  permlink: string @index(hash)
+  version: string
+  manifest: DAppManifest
+  manifestJson: string
+  blobIds: [string]
+  tags: [string] @index(hash)
+  category: string @index(hash)
+  rating: float @index(float)
+  downloadCount: int @index(int)
+  createdAt: datetime @index(hour)
+  updatedAt: datetime @index(hour)
+}
+
+type DAppInstall {
+  id: string @index(hash) @upsert
+  installId: string @index(hash) @upsert
+  dappId: string @index(hash)
+  suiAddress: string @index(hash)
+  platform: string @index(hash)
+  userAgent: string
+  subscriptionJson: string
+  createdAt: datetime @index(hour)
+}
+
+type DAppManifest {
+  entryPoint: string
+  assets: [string]
+  dependencies: [string]
+  permissions: [string]
+  metadata: DAppMetadata
+}
+
+type DAppMetadata {
+  title: string
+  description: string
+  author: string
+  version: string
+  license: string
+  thumbnail: string
+  icon: string
+  videoUrl: string
+  audioUrl: string
+  streamUrl: string
+  streamType: string
+}
+
+# Social posts and interactions
+type SocialPost {
+  id: string @index(hash) @upsert
+  author: string @index(hash)
+  vanityAddress: string @index(hash)
+  content: string @index(fulltext)
+  contentType: string @index(hash)
+  dappId: string @index(hash)
+  parentId: string @index(hash)
+  quoteId: string @index(hash)
+  repostId: string @index(hash)
+  mediaUrls: [string]
+  tags: [string] @index(hash)
+  mentions: [string] @index(hash)
+  likes: int @index(int)
+  dislikes: int @index(int)
+  replies: int @index(int)
+  reposts: int @index(int)
+  quotes: int @index(int)
+  signature: string
+  signedAt: datetime @index(hour)
+  createdAt: datetime @index(hour)
+  updatedAt: datetime @index(hour)
+  deletedAt: datetime
+  blockNumber: int @index(int)  # Reference to social blockchain
+  sequence: int @index(int)     # Global ordering sequence
+  locationZone: string @index(hash)  # Anonymized location zone (e.g., "40.7,-74.0")
+  locationLat: float @index(float)  # Latitude for proximity search
+  locationLon: float @index(float)  # Longitude for proximity search
+}
+
+type SocialInteraction {
+  id: string @index(hash) @upsert
+  type: string @index(hash)
+  user: string @index(hash)
+  vanityAddress: string @index(hash)
+  targetId: string @index(hash)
+  targetType: string @index(hash)
+  signature: string
+  signedAt: datetime @index(hour)
+  createdAt: datetime @index(hour)
+  deletedAt: datetime
+  blockNumber: int @index(int)  # Reference to social blockchain
+  sequence: int @index(int)     # Global ordering sequence
+}
+
+type FollowRelationship {
+  id: string @index(hash) @upsert
+  follower: string @index(hash)
+  following: string @index(hash)
+  createdAt: datetime @index(hour)
+  blockNumber: int @index(int)  # Reference to social blockchain
+  sequence: int @index(int)     # Global ordering sequence
+}
+
+# Social blockchain for ordering and ecosystem replication
+type SocialBlock {
+  id: string @index(hash) @upsert
+  blockNumber: int @index(int) @upsert
+  previousBlockHash: string @index(hash)
+  timestamp: datetime @index(hour)
+  blockHash: string @index(hash)
+  walrusId: string @index(hash)  # Walrus blob ID for broadcasting
+  interactions: [SocialInteraction]
+  signatures: [BlockSignature]
+}
+
+type BlockSignature {
+  signer: string @index(hash)
+  signature: string
+  timestamp: datetime @index(hour)
+  ecosystemId: string @index(hash)  # Which ecosystem signed this block
+}
+
+# Ecosystem peers for cross-platform data sharing
+type EcosystemPeer {
+  id: string @index(hash) @upsert
+  name: string @index(fulltext)
+  dgraphEndpoint: string
+  publicKey: string
+  lastSeenBlock: int @index(int)
+  lastSeen: datetime @index(hour)
+  isActive: bool
+}
+
+# Governance entities
+type GovernanceVariable {
+  name: string @index(hash) @upsert
+  value: string
+  valueType: string @index(hash) # 'number', 'percentage', 'string'
+  updatedAt: datetime @index(hour)
+  lastChangedAt: datetime @index(hour)
+  annualCapPct: float
+  description: string
+}
+
+type GovernanceMarket {
+  id: string @index(hash) @upsert
+  variable: string @index(hash)
+  proposedValue: string
+  stakeYes: float @index(float)
+  stakeNo: float @index(float)
+  createdAt: datetime @index(hour)
+  expiresAt: datetime @index(hour)
+  resolvedAt: datetime
+  resolution: string @index(hash) # 'yes', 'no', 'cap-blocked'
+  triggeredBy: string @index(hash) # 'posting', 'file-change', 'flag', 'governance'
+  triggeredByAddress: string @index(hash)
+}
+
+type GovernanceBet {
+  id: string @index(hash) @upsert
+  marketId: string @index(hash)
+  bettor: string @index(hash)
+  side: string @index(hash) # 'yes', 'no'
+  amount: float @index(float)
+  shares: float @index(float)
+  createdAt: datetime @index(hour)
+  payout: float
+}
+
+# Prediction markets (for moderation)
+type PredictionMarket {
+  id: string @index(hash) @upsert
+  dappId: string @index(hash)
+  safetyMetric: string @index(hash)
+  description: string @index(fulltext)
+  status: string @index(hash) # 'open', 'resolved', 'cancelled'
+  resolution: string @index(hash) # 'safe', 'unsafe', null
+  totalPool: float @index(float)
+  safePool: float @index(float)
+  unsafePool: float @index(float)
+  postingFeeContribution: float
+  recommendedAge: string @index(hash)
+  createdAt: datetime @index(hour)
+  expiresAt: datetime @index(hour)
+  resolvedAt: datetime
+  bets: [PredictionBet]
+  triggeredBy: string @index(hash)
+  triggeredByAddress: string @index(hash)
+}
+
+type PredictionBet {
+  id: string @index(hash) @upsert
+  marketId: string @index(hash)
+  bettor: string @index(hash)
+  side: string @index(hash) # 'safe', 'unsafe'
+  amount: float @index(float)
+  shares: float @index(float)
+  createdAt: datetime @index(hour)
+  payout: float
+}
+
+# Platform-wide subscription (subscriber pays foundation for ad-free)
+type Subscription {
+  subscriber: string @index(hash)
+  recipient: string @index(hash)  # foundation address
+  tier: string @index(hash)
+  status: string @index(hash)
+  expiresAt: datetime @index(hour)
+  paymentTxId: string @index(hash)
+  createdAt: datetime @index(hour)
+}
+
+type SafetyFlag {
+  id: string @index(hash) @upsert
+  dappId: string @index(hash)
+  metric: string @index(hash)
+  description: string @index(fulltext)
+  flaggedBy: string @index(hash)
+  createdAt: datetime @index(hour)
+}
+
+# Ad impression tracking (privacy-preserving)
+type AdImpression {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  zkProof: string # ZK proof JSON (no identity revealed)
+  proofHash: string @index(hash) # Hash of proof (for Merkle tree)
+  encryptedViewer: string # Homomorphically encrypted viewer identity
+  blockHeader: string
+  timestamp: datetime @index(hour)
+  merklePath: string # Merkle tree path (when tree is built)
+  merkleIndex: int # Position in Merkle tree
+  verified: bool
+  settled: bool # true after record_impression_with_escrow has been submitted (double-spend prevention)
+  settledAt: datetime @index(hour)
+  revenueDistributed: bool # true after distribute_revenue has been run for this impression (avoid double payout)
+  walrusDrawdownUsed: bool # true after walrus_drawdown has been used (prevents double-spend in Walrus drawdowns)
+  walrusDrawdownUsedAt: datetime @index(hour) # Timestamp when used in Walrus drawdown
+  walrusDrawdownPending: bool @index(bool) # true when queued for off-chain batch processing
+  walrusDrawdownPendingAt: datetime @index(hour) # Timestamp when queued for batch processing
+}
+
+# Ad aggregate statistics (homomorphically encrypted)
+type AdAggregate {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  encryptedCount: string # Homomorphically encrypted impression count
+  merkleRoot: string @index(hash)
+  threshold: int
+  currentCount: int # Decrypted count (admin only, updated periodically)
+  reachedAt: datetime
+  distributed: bool
+}
+
+# Ad click tracking (privacy-preserving)
+type AdClick {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  clickTokenHash: string @index(hash)
+  targetHash: string @index(hash)
+  zkProof: string
+  proofHash: string @index(hash)
+  encryptedViewer: string
+  blockHeader: string
+  timestamp: datetime @index(hour)
+  verified: bool
+}
+
+# Ad conversion tracking (privacy-preserving)
+type AdConversion {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  clickTokenHash: string @index(hash)
+  conversionTokenHash: string @index(hash)
+  zkProof: string
+  proofHash: string @index(hash)
+  encryptedViewer: string
+  blockHeader: string
+  timestamp: datetime @index(hour)
+  verified: bool
+}
+
+type AdClickAggregate {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  encryptedCount: string
+  threshold: int
+  currentCount: int
+  reachedAt: datetime
+}
+
+type AdConversionAggregate {
+  id: string @index(hash) @upsert
+  adId: string @index(hash)
+  contentId: string @index(hash)
+  encryptedCount: string
+  threshold: int
+  currentCount: int
+  reachedAt: datetime
+}
+
+# Campaigns (ad management plane)
+type AdCampaign {
+  id: string @index(hash) @upsert
+  advertiser: string @index(hash)
+  title: string @index(fulltext)
+  description: string @index(fulltext)
+  targetUrl: string
+  placements: [string] @index(hash)
+  contentIds: [string] @index(hash)
+  bid: float @index(float)
+  totalBudget: float @index(float)
+  remainingBudget: float @index(float)
+  startAt: datetime @index(hour)
+  endAt: datetime @index(hour)
+  status: string @index(hash) # 'active', 'paused', 'cancelled'
+  createdAt: datetime @index(hour)
+  updatedAt: datetime @index(hour)
+  onChainCampaignId: string @index(hash) # SUI object ID of AdCampaign (for settlement)
+  onChainEscrowId: string @index(hash) # SUI object ID of CampaignEscrow (for settlement)
+}
+
+# Reverse edges for efficient queries
+User.vanityNamespace: uid @reverse
+VanityNamespace.owner: uid @reverse
+DApp.owner: uid @reverse
+DApp.vanityNamespace: uid @reverse
+SocialPost.author: uid @reverse
+SocialPost.parent: uid @reverse
+SocialPost.quote: uid @reverse
+SocialPost.repost: uid @reverse
+SocialInteraction.user: uid @reverse
+SocialInteraction.target: uid @reverse
+FollowRelationship.follower: uid @reverse
+FollowRelationship.following: uid @reverse
+GovernanceMarket.variable: uid @reverse
+GovernanceBet.market: uid @reverse
+PredictionMarket.dapp: uid @reverse
+PredictionBet.market: uid @reverse
+SafetyFlag.dapp: uid @reverse
+AdImpression.adId: uid @reverse
+AdImpression.contentId: uid @reverse
+AdAggregate.adId: uid @reverse
+AdAggregate.contentId: uid @reverse
+AdClick.adId: uid @reverse
+AdClick.contentId: uid @reverse
+AdConversion.adId: uid @reverse
+AdConversion.contentId: uid @reverse
+AdClickAggregate.adId: uid @reverse
+AdClickAggregate.contentId: uid @reverse
+AdConversionAggregate.adId: uid @reverse
+AdConversionAggregate.contentId: uid @reverse
+DAppEarningsLedger.dappId: uid @reverse
+AccountEarningsLedger.account: uid @reverse
+
+# Walrus Node Registry (minimal index - full data in Walrus blob)
+type WalrusNode {
+  blobId: string @index(hash) @upsert  # Walrus blob ID containing full registry JSON
+  operatorAddress: string @index(hash)  # SUI address of node operator (gets revenue share)
+  nodeAddress: string @index(hash)     # Public node identifier
+  endpoint: string @index(hash)         # API endpoint URL
+  region: string @index(hash)           # Geographic region
+  public: bool @index(bool)             # Whether node accepts public requests
+  verified: bool @index(bool)           # PM verification status
+  verifiedAt: datetime @index(hour)     # When PM verified the registry
+  status: string @index(hash)           # active, inactive, maintenance
+  reputation: float @index(float)       # Node reputation score (0.0-1.0)
+  registeredAt: datetime @index(hour)   # Registration timestamp
+  lastSeen: datetime @index(hour)       # Last heartbeat/update
+}
+
+# Earnings tracking with 4-bucket rolling window (30 days per bucket, 120 days total)
+# Buckets: 1=0-30d (current), 2=31-60d, 3=61-90d, 4=91-120d
+# Rolling window (90d) = buckets 2+3+4. After 120d, bucket 4 → allTimeTotal, then cleared.
+type DAppEarningsLedger {
+  dappId: string @index(hash) @upsert
+  # PM earnings (cumulative PM uptake)
+  pmBucket1: float @index(float)  # 0-30 days ago
+  pmBucket2: float @index(float)   # 31-60 days ago
+  pmBucket3: float @index(float)   # 61-90 days ago
+  pmBucket4: float @index(float)   # 91-120 days ago
+  pmAllTime: float @index(float)   # Everything older than 120 days
+  # Ad revenue (cumulative ad rev)
+  adBucket1: float @index(float)
+  adBucket2: float @index(float)
+  adBucket3: float @index(float)
+  adBucket4: float @index(float)
+  adAllTime: float @index(float)
+  # Metadata
+  lastRollDate: datetime @index(hour)  # Last time buckets were rolled
+  updatedAt: datetime @index(hour)
+}
+
+type AccountEarningsLedger {
+  account: string @index(hash) @upsert
+  # PM earnings (cumulative winning)
+  pmBucket1: float @index(float)
+  pmBucket2: float @index(float)
+  pmBucket3: float @index(float)
+  pmBucket4: float @index(float)
+  pmAllTime: float @index(float)
+  # Ad revenue (cumulative ad rev)
+  adBucket1: float @index(float)
+  adBucket2: float @index(float)
+  adBucket3: float @index(float)
+  adBucket4: float @index(float)
+  adAllTime: float @index(float)
+  # Metadata
+  lastRollDate: datetime @index(hour)
+  updatedAt: datetime @index(hour)
+}
+
+# Voter roll (maintained incrementally as earnings update)
+type GovernanceVoterRoll {
+  id: string @index(hash) @upsert
+  periodStart: datetime @index(hour)  # Start of this voter roll period
+  periodEnd: datetime @index(hour)     # End of this voter roll period
+  eligibleVoters: [string] @index(hash)  # SUI addresses eligible to vote
+  creatorCount: int @index(int)          # Number of creators in top 50%
+  pmEarnerCount: int @index(int)          # Number of PM earners (equal to creatorCount, deduped)
+  threshold: float @index(float)          # Cached 50th percentile threshold (min ad earnings for eligibility)
+  thresholdUpdatedAt: datetime @index(hour)  # When threshold was last recalculated
+  computedAt: datetime @index(hour)
+}
+
+# Location-based search preferences
+type LocationSearchPreference {
+  user: string @index(hash) @upsert
+  enabled: bool
+  precision: string @index(hash)  # 'city', 'neighborhood', 'landmark'
+  subscribedSpots: [string] @index(hash)
+  currentZone: string @index(hash)
+  sessionOnly: bool
+  updatedAt: datetime @index(hour)
+}

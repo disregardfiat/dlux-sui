@@ -1,0 +1,8 @@
+test-results/
+playwright-report/
+playwright/.cache/
+scripts/.validator.pid
+scripts/.package_id
+scripts/.posting_pool_id
+slush-extension/
+playwright-slush-profile/

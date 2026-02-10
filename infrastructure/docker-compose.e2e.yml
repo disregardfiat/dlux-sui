@@ -1,0 +1,48 @@
+# Docker Compose configuration for E2E testing
+# This runs only the essential services needed for E2E tests
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up
+
+version: '3.8'
+
+services:
+  # Only include services needed for E2E tests
+  sui-service:
+    environment:
+      - NODE_ENV=test
+
+  walrus-service:
+    environment:
+      - NODE_ENV=test
+      # Disable external network connections for testing
+      - WALRUS_BASE_URL=
+      - SEAL_BASE_URL=
+
+  dgraph-service:
+    environment:
+      - NODE_ENV=test
+      # DGraph will use in-memory mode if not available
+      - DGRAPH_HOST=dgraph-alpha:9080
+
+  # Exclude services not needed for E2E tests
+  presence-service:
+    profiles:
+      - exclude
+
+  zk-service:
+    profiles:
+      - exclude
+
+  mcp-service:
+    profiles:
+      - exclude
+
+  webhook-service:
+    profiles:
+      - exclude
+
+  vue-app:
+    profiles:
+      - exclude
+
+  # Keep dgraph services for E2E (dgraph-service needs them)
+  # dgraph-zero and dgraph-alpha are needed
