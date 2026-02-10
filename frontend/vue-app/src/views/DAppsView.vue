@@ -180,6 +180,7 @@
             :description="item.description || '—'"
             :owner="item.owner || ''"
             :owner-suins-name="item.ownerSuinsName || ''"
+            :owner-avatar-url="item.ownerAvatar || ''"
             :permlink="item.permlink"
             :subdomain="item.subdomain"
             :manifest="item.dapp?.manifest"
@@ -417,6 +418,7 @@ const fetchDapps = async () => {
       description: d.description || d.manifest?.metadata?.description || '—',
       owner: d.owner,
       ownerSuinsName: d.ownerSuinsName || undefined,
+      ownerAvatar: d.ownerAvatar || undefined,
       sfw: true,
       subdomain: d.subdomain,
       permlink: d.permlink,

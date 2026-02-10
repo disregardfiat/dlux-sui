@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { dappRepository } from '../repositories/dappRepository';
 import { authService } from '../services/authService';
 import { suinsService } from '../services/suinsService';
+import { vanityService } from '../services/vanityService';
 import { getGovernanceConfig } from './governance';
 
 const router = express.Router();
@@ -23,6 +24,11 @@ const MANIFEST_CACHE_MAX = 500;
 const ownerSuinsCache = new Map<string, { name: string | null; ts: number }>();
 const SUINS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 const SUINS_CACHE_MAX = 500;
+
+/** Cache for owner address → profile avatar URL (for dApp cards). */
+const ownerAvatarCache = new Map<string, { avatar: string | null; ts: number }>();
+const AVATAR_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const AVATAR_CACHE_MAX = 500;
 
 /** Best-effort reverse-resolve an owner address to SuiNS name (cached). */
 async function resolveOwnerSuins(address: string): Promise<string | null> {
@@ -59,11 +65,30 @@ function addressSubdomain(addr: string): string {
   return hex ? `h${hex}` : '';
 }
 
-/** Enrich a single dApp with ownerSuinsName + subdomain (async, best-effort). */
+/** Enrich a single dApp with ownerSuinsName, subdomain, and ownerAvatar (async, best-effort). */
 async function enrichDapp(dapp: SUIdApp): Promise<any> {
   const suins = await resolveOwnerSuins(dapp.owner);
   const subdomain = suins ? suins.replace(/\.sui$/, '') : addressSubdomain(dapp.owner);
-  return { ...dapp, ownerSuinsName: suins || undefined, subdomain };
+  let ownerAvatar: string | undefined;
+  const avatarKey = (dapp.owner || '').toLowerCase();
+  const cachedAvatar = ownerAvatarCache.get(avatarKey);
+  if (cachedAvatar && Date.now() - cachedAvatar.ts < AVATAR_CACHE_TTL) {
+    ownerAvatar = cachedAvatar.avatar ?? undefined;
+  } else {
+    try {
+      const user = await vanityService.getUser(dapp.owner);
+      const avatar = user?.profile?.avatar;
+      if (ownerAvatarCache.size >= AVATAR_CACHE_MAX) {
+        const oldest = ownerAvatarCache.keys().next().value;
+        if (oldest) ownerAvatarCache.delete(oldest);
+      }
+      ownerAvatarCache.set(avatarKey, { avatar: avatar ?? null, ts: Date.now() });
+      ownerAvatar = avatar ?? undefined;
+    } catch {
+      ownerAvatar = undefined;
+    }
+  }
+  return { ...dapp, ownerSuinsName: suins || undefined, subdomain, ownerAvatar };
 }
 
 /** Enrich a batch of dApps (deduplicates owner lookups). */

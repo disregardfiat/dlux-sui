@@ -75,7 +75,7 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 #### Account Management
 - **SuiNS Names**: Primary name resolution via SuiNS
 - **ZK Account Linking**: GitHub, Gmail, Facebook integration
-- **Profile Management**: Bio, avatar, banner, website, location
+- **Profile Management**: Bio, avatar, banner, website, location. Your avatar and SuiNS name appear on dApp cards (hub, search) and in Walrus link previews when your dApps are shared.
 - **Social Links**: Structured links to external profiles
 - **Profile Metadata**: JSON metadata for custom attributes
 - **Social Stats**: Posts, interactions, followers tracking

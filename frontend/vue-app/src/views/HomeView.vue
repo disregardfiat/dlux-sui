@@ -53,6 +53,8 @@
             :title="dapp.manifest?.metadata?.title || dapp.name || 'Untitled'"
             :description="dapp.manifest?.metadata?.description || dapp.description || '—'"
             :owner="dapp.owner || ''"
+            :owner-suins-name="(dapp as any).ownerSuinsName || ''"
+            :owner-avatar-url="(dapp as any).ownerAvatar || ''"
             :permlink="dapp.permlink"
             :subdomain="dapp.subdomain"
             :manifest="dapp.manifest"

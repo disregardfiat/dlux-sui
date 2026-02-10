@@ -124,6 +124,8 @@ const props = withDefaults(
     description: string;
     owner: string;
     ownerSuinsName?: string;
+    /** When set (e.g. from SUINS profile), shown as author avatar instead of identicon */
+    ownerAvatarUrl?: string;
     permlink?: string;
     subdomain?: string;
     manifest?: { metadata?: { icon?: string; thumbnail?: string; ogImage?: string }; pathMap?: Record<string, string> };
@@ -138,7 +140,7 @@ const props = withDefaults(
       safeOdds?: number;
     };
   }>(),
-  { ownerSuinsName: '', permlink: '', subdomain: '', manifest: () => ({}), pmStatus: () => ({}) }
+  { ownerSuinsName: '', ownerAvatarUrl: '', permlink: '', subdomain: '', manifest: () => ({}), pmStatus: () => ({}) }
 );
 
 defineEmits<{
@@ -196,8 +198,9 @@ const iconUrl = computed(() => {
   return resolveWalrusUrl(icon) || '';
 });
 
-/** Programmatic doodle (like GitHub identicons) - deterministic avatar from owner address */
+/** Author avatar: SUINS profile picture when set, otherwise deterministic identicon from owner address */
 const authorAvatarUrl = computed(() => {
+  if (props.ownerAvatarUrl?.trim()) return props.ownerAvatarUrl.trim();
   const seed = encodeURIComponent(props.owner || 'unknown');
   return `https://api.dicebear.com/7.x/identicon/svg?seed=${seed}&backgroundColor=667eea`;
 });

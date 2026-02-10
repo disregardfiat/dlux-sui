@@ -366,6 +366,16 @@ app.get('/metadata', async (req, res) => {
       if (typeof meta?.description === 'string' && meta.description.trim()) {
         description = meta.description.trim();
       }
+      // Include SUINS author name in description for link previews (e.g. "Showoff. By @disregardfiat")
+      const hasBy = /\s+by\s+/i.test(description);
+      const suinsName = typeof meta?.ownerSuinsName === 'string' && meta.ownerSuinsName.trim()
+        ? meta.ownerSuinsName.replace(/\.sui$/i, '').trim()
+        : null;
+      const authorDisplay = suinsName || author;
+      if (!hasBy && authorDisplay) {
+        const suffix = description.endsWith('.') ? '' : '.';
+        description = description.trim() + suffix + (suinsName ? ` By @${suinsName}` : ` By ${author}`);
+      }
       if (meta?.manifest?.metadata?.thumbnail) {
         thumbnail = String(meta.manifest.metadata.thumbnail);
       }
