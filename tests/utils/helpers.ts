@@ -47,17 +47,6 @@ export async function createUser(data: {
   };
 }
 
-export async function createVanity(vanity: string, owner: string): Promise<any> {
-  // Mock implementation - in real tests, this would create a vanity via API
-  return {
-    address: vanity,
-    owner,
-    price: 10,
-    purchasedAt: new Date(),
-    verified: true
-  };
-}
-
 export async function healthCheck(service: string): Promise<boolean> {
   try {
     const url = service === 'sui' ? SUI_SERVICE_URL :

@@ -74,6 +74,26 @@ tests/e2e/
 
 ## Running Tests
 
+### Local Vue app + real backend (dlux.io)
+
+Run the Vue app on **localhost** talking to the **live** dlux.io backends (no local services required). Then run E2E against that local app (no wallet transactions; sign-in flows are fine).
+
+1. **Start the Vue dev server** (uses `frontend/vue-app/.env.development` which points at gql.dlux.io, sui.dlux.io, walrus.dlux.io):
+   ```bash
+   cd frontend/vue-app && npm run dev
+   ```
+   App is at **http://localhost:3000**.
+
+2. **In another terminal**, run E2E against localhost (chromium only; wallet-heavy specs are already excluded):
+   ```bash
+   E2E_BASE_URL=http://localhost:3000 npx playwright test --project=chromium
+   ```
+
+Or run only the E2E command (with dev server already running on port 3000):
+   ```bash
+   npm run test:e2e:local
+   ```
+
 ### Run All E2E Tests
 ```bash
 npm run test:e2e

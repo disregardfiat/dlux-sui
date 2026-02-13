@@ -152,6 +152,41 @@ describe('SuiNS', () => {
     });
   });
 
+  describe('PUT /suins/profile/:identifier', () => {
+    it('returns 400 when suiAddress or profile missing', async () => {
+      const res = await request(app)
+        .put('/suins/profile/testuser')
+        .send({ profile: { displayName: 'Test' } });
+      expect(res.status).toBe(400);
+      const res2 = await request(app)
+        .put('/suins/profile/testuser')
+        .send({ suiAddress: '0xabc' });
+      expect(res2.status).toBe(400);
+    });
+
+    it('updates profile and returns transactionId', async () => {
+      const owner = '0x1234567890abcdef1234567890abcdef12345678';
+      suinsService.resolveName.mockResolvedValue(owner);
+      suinsService.reverseResolve.mockResolvedValue('testuser');
+
+      const res = await request(app)
+        .put('/suins/profile/testuser')
+        .send({
+          suiAddress: owner,
+          profile: { displayName: 'Updated', bio: 'New bio' }
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('transactionId');
+      expect(String(res.body.transactionId)).toMatch(/^profile_tx_/);
+
+      const getRes = await request(app).get('/suins/profile/testuser');
+      expect(getRes.status).toBe(200);
+      expect(getRes.body.profile.displayName).toBe('Updated');
+      expect(getRes.body.profile.bio).toBe('New bio');
+    });
+  });
+
   describe('POST /suins/register-intent', () => {
     it('returns 501 when not configured', async () => {
       const res = await request(app)

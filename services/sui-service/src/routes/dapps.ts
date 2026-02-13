@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 import { dappRepository } from '../repositories/dappRepository';
 import { authService } from '../services/authService';
 import { suinsService } from '../services/suinsService';
-import { vanityService } from '../services/vanityService';
+import { profileService } from '../services/profileService';
 import { getGovernanceConfig } from './governance';
 
 const router = express.Router();
@@ -76,7 +76,7 @@ async function enrichDapp(dapp: SUIdApp): Promise<any> {
     ownerAvatar = cachedAvatar.avatar ?? undefined;
   } else {
     try {
-      const user = await vanityService.getUser(dapp.owner);
+      const user = await profileService.getUser(dapp.owner);
       const avatar = user?.profile?.avatar;
       if (ownerAvatarCache.size >= AVATAR_CACHE_MAX) {
         const oldest = ownerAvatarCache.keys().next().value;

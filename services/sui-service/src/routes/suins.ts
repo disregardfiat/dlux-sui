@@ -1,7 +1,7 @@
 import express from 'express';
 import { logger } from '../utils/logger';
 import { suinsService } from '../services/suinsService';
-import { vanityService } from '../services/vanityService';
+import { profileService } from '../services/profileService';
 
 const router = express.Router();
 
@@ -77,7 +77,7 @@ router.get('/reverse/:address', async (req, res) => {
 router.get('/profile/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
-    const user = await vanityService.getUser(identifier);
+    const user = await profileService.getUser(identifier);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -88,17 +88,17 @@ router.get('/profile/:identifier', async (req, res) => {
   }
 });
 
-// Update profile by identifier (SuiNS name or SUI address)
+// Update profile by identifier (SuiNS name or SUI address). Auth via JWT or legacy signature.
 router.put('/profile/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     const { suiAddress, signature, profile } = req.body;
 
-    if (!suiAddress || !signature) {
-      return res.status(400).json({ error: 'suiAddress and signature are required' });
+    if (!suiAddress || !profile) {
+      return res.status(400).json({ error: 'suiAddress and profile are required' });
     }
 
-    const updated = await vanityService.updateProfile(identifier, suiAddress, signature, profile);
+    const updated = await profileService.updateProfile(identifier, suiAddress, profile);
     res.json(updated);
   } catch (error: any) {
     logger.error('Error updating SuiNS profile', error);
