@@ -739,9 +739,9 @@ onMounted(async () => {
           entryPoint: d.manifest?.entryPoint ?? '/index.html',
           assets: Array.isArray(d.manifest?.assets) ? [...d.manifest.assets] : [],
           metadata: meta,
-          videoUrl: d.manifest?.videoUrl ?? undefined,
-          audioUrl: d.manifest?.audioUrl ?? undefined,
-          streamUrl: d.manifest?.streamUrl ?? undefined,
+          videoUrl: d.manifest?.videoUrl || undefined,
+          audioUrl: d.manifest?.audioUrl || undefined,
+          streamUrl: d.manifest?.streamUrl || undefined,
           streamType: d.manifest?.streamType ?? 'hls'
         },
         blobIds: Array.isArray(d.blobIds) ? [...d.blobIds] : []
@@ -1146,8 +1146,8 @@ async function submitDApp() {
 
     // Start with existing pathMap in edit mode so we can delta-update (replace/add only new uploads)
     const pathToBlob: Record<string, string> = isEditMode.value ? { ...existingPathMap.value } : {};
-    let firstHtmlBlobId: string | null = null;
-    let firstHtmlPath: string | null = null;
+    let firstHtmlBlobId: string | undefined = undefined;
+    let firstHtmlPath: string | undefined = undefined;
 
     // Upload web app files in parallel (concurrency-limited for server stability)
     const fileResults = await runWithConcurrencyLimit<File, string>(
@@ -1181,7 +1181,7 @@ async function submitDApp() {
     if (isEditMode.value && Object.keys(pathToBlob).length > 0 && !firstHtmlBlobId) {
       const htmlKey = Object.keys(pathToBlob).find((k) => k.toLowerCase().endsWith('.html') || k.toLowerCase().endsWith('.htm'));
       if (htmlKey) {
-        firstHtmlBlobId = pathToBlob[htmlKey] ?? null;
+        firstHtmlBlobId = pathToBlob[htmlKey] ?? undefined;
         firstHtmlPath = htmlKey;
       }
     }
@@ -1192,17 +1192,17 @@ async function submitDApp() {
     blobIds.push(...pathBlobIds);
 
     // Resolve entry point: user-selected file path → blobId, or first HTML blob, or existing manifest, or first blob
-    const selectedBlobId: string | undefined = entryPointFileKey.value && pathToBlob[entryPointFileKey.value]
+    const entryBlobIdFromPath: string | undefined = entryPointFileKey.value 
       ? pathToBlob[entryPointFileKey.value]
       : undefined;
-    if (selectedBlobId) {
-      formData.value.manifest.entryPoint = selectedBlobId;
+    if (entryBlobIdFromPath) {
+      formData.value.manifest.entryPoint = entryBlobIdFromPath;
     } else if (firstHtmlBlobId) {
-      formData.value.manifest.entryPoint = firstHtmlBlobId;
+      formData.value.manifest.entryPoint = firstHtmlBlobId as string;
     } else if (typeof formData.value.manifest.entryPoint === 'string' && pathBlobIds.includes(formData.value.manifest.entryPoint)) {
       // Keep existing entry point when in edit mode and no new HTML uploaded
-    } else if (blobIds.length > 0 && blobIds[0]) {
-      formData.value.manifest.entryPoint = blobIds[0];
+    } else if (blobIds.length > 0) {
+      formData.value.manifest.entryPoint = blobIds[0] ?? '';
     }
 
     // Build pathMap so sandbox can resolve paths (index.html, js/app.js, dir/file) to blobIds
@@ -1221,7 +1221,7 @@ async function submitDApp() {
     if (videoFile.value || audioFile.value || iconFile.value || thumbnailFile.value) {
       setProgress('files', 'Uploading video, icon, thumbnail…');
     }
-    const [videoBlobId, audioBlobId, iconBlobId, thumbnailBlobId] = await Promise.all([
+    const [videoBlobId, audioBlobId, iconBlobId, thumbnailBlobId]: [string | null, string | null, string | null, string | null] = await Promise.all([
       videoFile.value ? uploadToWalrus(videoFile.value) : Promise.resolve(null),
       audioFile.value ? uploadToWalrus(audioFile.value) : Promise.resolve(null),
       iconFile.value ? uploadToWalrus(iconFile.value) : Promise.resolve(null),

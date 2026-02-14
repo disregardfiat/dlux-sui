@@ -117,7 +117,7 @@ const hasMore = ref(false)
 onMounted(() => loadFeed())
 
 function getQuery() {
-  const order = 'desc'
+  const order: 'asc' | 'desc' = 'desc'
   if (feedMode.value === 'popular') {
     return { limit, offset: 0, sortBy: 'likes' as const, sortOrder: order }
   }

@@ -257,10 +257,10 @@ function goToDetail() {
 
 <style scoped>
 .dapp-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-card, #fff);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   display: flex;
@@ -270,13 +270,13 @@ function goToDetail() {
 
 .dapp-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border-color: #d1d5db;
+  box-shadow: var(--shadow-hover, 0 8px 20px rgba(0, 0, 0, 0.08));
+  border-color: var(--primary, #4c5bd4);
 }
 
 .dapp-card-banner {
   height: 140px;
-  background: linear-gradient(145deg, #eef1ff 0%, #e8e4f8 100%);
+  background: linear-gradient(145deg, var(--bg-secondary, #eef1ff) 0%, var(--bg-secondary, #e8e4f8) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -292,7 +292,7 @@ function goToDetail() {
 .dapp-card-banner-placeholder {
   font-size: 2.25rem;
   font-weight: 700;
-  color: #5b21b6;
+  color: var(--primary, #5b21b6);
   opacity: 0.85;
   letter-spacing: -0.02em;
 }
@@ -322,8 +322,8 @@ function goToDetail() {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: #eef1ff;
-  color: #4c5bd4;
+  background: var(--bg-secondary, #eef1ff);
+  color: var(--primary, #4c5bd4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,22 +339,22 @@ function goToDetail() {
   display: flex;
   gap: 0.75rem;
   padding: 0.4rem 0.75rem;
-  background: #f0f4ff;
-  border-top: 1px solid #e0e8ff;
+  background: var(--bg-secondary, #f0f4ff);
+  border-top: 1px solid var(--border-primary, #e0e8ff);
   cursor: pointer;
   transition: background 0.2s;
   font-size: 0.75rem;
 }
 
 .pm-indicator:hover {
-  background: #e0e8ff;
+  background: var(--primary-light, #e0e8ff);
 }
 
 .pm-stat {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  color: #4c5bd4;
+  color: var(--primary, #4c5bd4);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -368,7 +368,7 @@ function goToDetail() {
   font-weight: 600;
   margin: 0;
   line-height: 1.35;
-  color: #1a1d24;
+  color: var(--text-primary, #1a1d24);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -377,7 +377,7 @@ function goToDetail() {
 
 .dapp-card-description {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   margin: 0;
   line-height: 1.4;
   display: -webkit-box;
@@ -402,7 +402,7 @@ function goToDetail() {
 
 .author-name {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
 }
 
 .dapp-card-actions {
@@ -411,7 +411,7 @@ function goToDetail() {
   flex-wrap: wrap;
   padding-top: 0.75rem;
   margin-top: auto;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border-primary, #f3f4f6);
 }
 
 .dapp-card-actions .btn {

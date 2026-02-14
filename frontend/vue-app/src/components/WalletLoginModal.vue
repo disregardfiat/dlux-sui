@@ -143,7 +143,7 @@ const connect = async (wallet: WalletEntry) => {
       connectingError.value = 'No accounts returned from wallet.';
       return;
     }
-    if (list.length === 1) {
+    if (list.length === 1 && list[0]) {
       await loginWithAccount(wallet, list[0].address);
       return;
     }

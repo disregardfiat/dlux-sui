@@ -13,32 +13,32 @@
       <div class="pm-bet-modal-body">
         <p class="text-muted small mb-2">dApp: {{ market.dappId || '—' }}</p>
         <p class="small mb-3">
-          Total Pool: {{ formatPool(market.totalPool) }} MIST · 
-          {{ getBettorCount(market) }} {{ getBettorCount(market) === 1 ? 'bettor' : 'bettors' }} · 
-          Expires: {{ market.expiresAt?.slice(0, 10) || '—' }}
+          Total Pool: {{ formatPool(market!.totalPool) }} MIST · 
+          {{ getBettorCount(market!) }} {{ getBettorCount(market!) === 1 ? 'bettor' : 'bettors' }} · 
+          Expires: {{ formatExpiresAt(market!.expiresAt) }}
         </p>
         <div class="mb-3 p-2 bg-light rounded">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="small">
               <span class="text-success fw-bold">Safe:</span> 
-              {{ formatPool(market.safePool) }} MIST 
-              <span class="text-muted">({{ getOdds(market, 'safe') }})</span>
+              {{ formatPool(market!.safePool) }} MIST 
+              <span class="text-muted">({{ getOdds(market!, 'safe') }})</span>
             </span>
             <span class="small">
               <span class="text-danger fw-bold">Unsafe:</span> 
-              {{ formatPool(market.unsafePool) }} MIST 
-              <span class="text-muted">({{ getOdds(market, 'unsafe') }})</span>
+              {{ formatPool(market!.unsafePool) }} MIST 
+              <span class="text-muted">({{ getOdds(market!, 'unsafe') }})</span>
             </span>
           </div>
           <div class="progress" style="height: 6px;">
             <div 
               class="progress-bar bg-success" 
-              :style="{ width: getSafePercentage(market) + '%' }"
+              :style="{ width: getSafePercentage(market!) + '%' }"
               role="progressbar"
             ></div>
             <div 
               class="progress-bar bg-danger" 
-              :style="{ width: getUnsafePercentage(market) + '%' }"
+              :style="{ width: getUnsafePercentage(market!) + '%' }"
               role="progressbar"
             ></div>
           </div>
@@ -54,7 +54,7 @@
               value="safe"
             />
             <label class="btn btn-outline-success" for="pm-side-safe">
-              Safe <span class="small">({{ getOdds(market, 'safe') }})</span>
+              Safe <span class="small">({{ getOdds(market!, 'safe') }})</span>
             </label>
             <input
               id="pm-side-unsafe"
@@ -64,7 +64,7 @@
               value="unsafe"
             />
             <label class="btn btn-outline-danger" for="pm-side-unsafe">
-              Unsafe <span class="small">({{ getOdds(market, 'unsafe') }})</span>
+              Unsafe <span class="small">({{ getOdds(market!, 'unsafe') }})</span>
             </label>
           </div>
         </div>
@@ -120,6 +120,20 @@ const canSubmit = computed(() =>
 function formatMetric(metric: string): string {
   if (!metric || metric === '—') return metric || '—';
   return metric.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function formatExpiresAt(date: Date | string | undefined | null): string {
+  if (!date) return '—';
+  let d: Date;
+  if (typeof date === 'string') {
+    d = new Date(date);
+  } else if (date instanceof Date) {
+    d = date;
+  } else {
+    return '—';
+  }
+  if (isNaN(d.getTime())) return '—';
+  return d.toISOString().slice(0, 10);
 }
 
 // Convert MIST to SUI (1 SUI = 1,000,000,000 MIST)

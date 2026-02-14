@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="app-wrapper">
     <nav class="navbar navbar-expand-lg" :class="effectiveTheme === 'dark' ? 'navbar-dark bg-dark' : 'navbar-light bg-light'">
       <div class="container">
         <router-link class="navbar-brand d-flex align-items-center gap-2" to="/">
@@ -73,8 +73,10 @@
       </div>
     </nav>
 
-    <main class="container mt-4">
-      <router-view />
+    <main class="main-content">
+      <div class="container mt-4">
+        <router-view />
+      </div>
     </main>
 
     <WalletLoginModal
@@ -82,7 +84,7 @@
       @close="showLoginModal = false"
     />
 
-    <footer class="bg-light mt-5 py-4">
+    <footer class="app-footer bg-light py-4">
       <div class="container">
         <div class="row">
           <div class="col-md-6 text-center text-md-start">
@@ -192,6 +194,30 @@ const logout = () => {
 </script>
 
 <style scoped>
+/* Flexbox sticky footer layout */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  /* Add padding-top to account for sticky navbar height */
+  padding-top: 1px;
+}
+
+.app-footer {
+  margin-top: auto;
+}
+
+/* Sticky navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
 .navbar-brand {
   font-weight: bold;
 }

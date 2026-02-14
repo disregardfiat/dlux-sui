@@ -130,7 +130,7 @@
             <div class="result-card-footer result-card-footer-pm">
               <span class="result-card-meta">Total Pool: {{ formatPool(market.totalPool) }} MIST</span>
               <span class="result-card-meta">{{ getBettorCount(market) }} {{ getBettorCount(market) === 1 ? 'bettor' : 'bettors' }}</span>
-              <span class="result-card-meta">Expires: {{ market.expiresAt ? formatDate(market.expiresAt) : '—' }}</span>
+              <span class="result-card-meta">Expires: {{ market.expiresAt ? formatDate(market.expiresAt as any) : '—' }}</span>
               <a 
                 v-if="market.id && market.id.startsWith('0x')" 
                 :href="buildExplorerObjectUrl(market.id)" 
@@ -482,7 +482,7 @@ const loadUserPositions = async () => {
             side: b.side || 'safe',
             amount: b.amount || 0,
             dappId: market.dappId,
-            placedAt: b.createdAt
+            placedAt: b.createdAt ? new Date(b.createdAt).toISOString() : undefined
           });
         }
       }

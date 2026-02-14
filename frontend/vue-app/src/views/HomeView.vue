@@ -97,7 +97,7 @@
           <div class="col-md-4">
             <div class="problem-card">
               <div class="problem-icon bg-secondary-subtle">
-                <i class="bi bi-person-x text-secondary"></i>
+                <i class="bi bi-incognito text-secondary"></i>
               </div>
               <h4>Data Brokers</h4>
               <p class="text-muted mb-0">
@@ -128,9 +128,6 @@
               <div class="zk-icon">
                 <i class="bi bi-shield-lock"></i>
               </div>
-              <div class="proof-particles">
-                <span></span><span></span><span></span>
-              </div>
             </div>
             <h4>Zero-Knowledge Proofs</h4>
             <p>
@@ -149,10 +146,7 @@
           <div class="solution-card">
             <div class="solution-visual homomorphic-visual">
               <div class="homo-icon">
-                <i class="bi bi-calculator"></i>
-              </div>
-              <div class="calc-particles">
-                <span>+1</span><span>+1</span><span>=2</span>
+                <i class="bi bi-safe2"></i>
               </div>
             </div>
             <h4>Homomorphic Encryption</h4>
@@ -173,11 +167,6 @@
             <div class="solution-visual control-visual">
               <div class="control-icon">
                 <i class="bi bi-sliders"></i>
-              </div>
-              <div class="control-dials">
-                <span class="dial dial-1"></span>
-                <span class="dial dial-2"></span>
-                <span class="dial dial-3"></span>
               </div>
             </div>
             <h4>You Control Everything</h4>
@@ -202,36 +191,61 @@
         <div class="row align-items-center">
           <div class="col-lg-6">
             <div class="revenue-visual">
-              <div class="pie-chart">
-                <div class="pie-slice slice-creator"></div>
-                <div class="pie-slice slice-platform"></div>
-                <div class="pie-slice slice-pm"></div>
+              <!-- PM Phase Toggle -->
+              <div class="pm-phase-toggle mb-4">
+                <button 
+                  class="toggle-btn" 
+                  :class="{ active: pmPhase === 'after' }"
+                  @click="pmPhase = 'after'"
+                >
+                  After PM Success
+                </button>
+                <button 
+                  class="toggle-btn" 
+                  :class="{ active: pmPhase === 'during' }"
+                  @click="pmPhase = 'during'"
+                >
+                  During PM
+                </button>
               </div>
+              <div 
+                class="pie-chart"
+                :style="pieChartStyle"
+              ></div>
               <div class="pie-legend">
                 <div class="legend-item">
                   <span class="legend-color creator"></span>
-                  <span>50% Creator</span>
+                  <span>{{ revenueSplits.creator }}% Creator</span>
                 </div>
                 <div class="legend-item">
-                  <span class="legend-color platform"></span>
-                  <span>30% Platform</span>
+                  <span class="legend-color foundation"></span>
+                  <span>{{ revenueSplits.foundation }}% Foundation</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color gateway"></span>
+                  <span>{{ revenueSplits.gateway }}% Gateway / Walrus</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-color pm"></span>
-                  <span>10% Safety Markets</span>
-                </div>
-                <div class="legend-item">
-                  <span class="legend-color reserve"></span>
-                  <span>10% Reserve</span>
+                  <span>{{ revenueSplits.pmPool }}% PM Pool</span>
                 </div>
               </div>
+              <!-- Phase description -->
+              <p class="phase-description mt-3 text-center">
+                <span v-if="pmPhase === 'after'">
+                  After the prediction market resolves successfully, creators receive their full revenue share.
+                </span>
+                <span v-else>
+                  During PM, creator revenue is held in escrow until the market resolves.
+                </span>
+              </p>
             </div>
           </div>
           <div class="col-lg-6">
             <h2 class="revenue-title">Fair Revenue for Creators</h2>
             <p class="revenue-subtitle">
               Unlike platforms that keep the majority, DLUX splits ad revenue 
-              <strong>50% to creators</strong>. Your content, your fair share.
+              <strong>{{ afterPmSplits.creator }}% to creators</strong>. Your content, your fair share.
             </p>
             <div class="revenue-features">
               <div class="revenue-feature">
@@ -239,8 +253,8 @@
                   <i class="bi bi-bank"></i>
                 </div>
                 <div>
-                  <h5>Prediction Market Safety</h5>
-                  <p class="mb-0 text-muted">10% funds community moderation—stakers verify ad quality, keeping the ecosystem safe.</p>
+                  <h5>Prediction Market Pool</h5>
+                  <p class="mb-0 text-muted">{{ duringPmSplits.pmPool }}% held in escrow during PM—released to creator after market succeeds, funds community moderation.</p>
                 </div>
               </div>
               <div class="revenue-feature">
@@ -280,7 +294,7 @@
             <div class="step-number">1</div>
             <div class="step-content">
               <h4>Ad Displays</h4>
-              <p>You see an ad before content. No cookies, no tracking scripts—just the ad.</p>
+              <p>You see an ad attached to content or your approximate location—not to your device fingerprint or account.</p>
             </div>
           </div>
           <div class="step-connector"></div>
@@ -304,7 +318,7 @@
             <div class="step-number">4</div>
             <div class="step-content">
               <h4>Revenue Distributed</h4>
-              <p>Advertiser pays, creator gets 50%, you got content without being tracked. Everyone wins.</p>
+              <p>Advertiser pays, creator gets {{ afterPmSplits.creator }}%, you got content without being tracked. Everyone wins.</p>
             </div>
           </div>
         </div>
@@ -378,11 +392,13 @@ import type { DApp } from '@dlux-sui/types'
 import { BRAND_NAME, getSuiServiceUrl } from '@/config/links'
 import { useDApps, type DAppWithPMStatus } from '@/composables/useDApps'
 import { useTheme } from '@/composables/useTheme'
+import { useGovernanceConfig } from '@/composables/useGovernanceConfig'
 import DAppCard from '@/components/DAppCard.vue'
 
 const brandName = BRAND_NAME
 const dappsComposable = useDApps()
 const { resolvedTheme } = useTheme()
+const { config: govConfig, loading: govLoading, fetchConfig } = useGovernanceConfig()
 
 const isDark = computed(() => resolvedTheme.value === 'dark')
 
@@ -390,8 +406,108 @@ const isDark = computed(() => resolvedTheme.value === 'dark')
 const featuredDApps = ref<DAppWithPMStatus[]>([])
 const dappsLoading = ref(false)
 
+// PM phase toggle: 'during' or 'after'
+const pmPhase = ref<'during' | 'after'>('after')
+
+/**
+ * Revenue splits during PM:
+ * - Creator % held in escrow
+ * - Foundation % for protocol
+ * - Gateway % for Walrus/storage
+ * - PM Pool % held for community moderation (released to creator if PM succeeds)
+ * 
+ * Default fallback values (if API unavailable): Total must equal 100
+ */
+const duringPmSplits = computed(() => {
+  // Default fallback values (must sum to 100)
+  const fallback = {
+    creator: 41,
+    foundation: 10,
+    gateway: 9,
+    pmPool: 40,
+    reserve: 0
+  }
+  
+  if (!govConfig.value) {
+    return fallback
+  }
+  
+  const foundation = govConfig.value.pm_foundation_pct ?? 0
+  const gateway = govConfig.value.pm_gateway_pct ?? 0
+  const creator = govConfig.value.pm_creator_pct ?? 0
+  const pmPool = govConfig.value.pm_pool_pct ?? 0
+  const total = foundation + gateway + creator + pmPool
+  
+  // If values don't sum to 100, calculate reserve to make up the difference
+  const reserve = Math.max(0, 100 - total)
+  
+  return { creator, foundation, gateway, pmPool, reserve }
+})
+
+/**
+ * Revenue splits after PM success:
+ * - Creator % receives full share (escrow released + ongoing)
+ * - Foundation % for protocol
+ * - Gateway % for Walrus/storage
+ * - PM Pool % goes to 0 (pool funds released to creator)
+ * 
+ * Default fallback values (if API unavailable): Total must equal 100
+ */
+const afterPmSplits = computed(() => {
+  // Default fallback values (must sum to 100)
+  const fallback = {
+    creator: 81,
+    foundation: 10,
+    gateway: 9,
+    pmPool: 0,
+    reserve: 0
+  }
+  
+  if (!govConfig.value) {
+    return fallback
+  }
+  
+  const foundation = govConfig.value.post_foundation_pct ?? 0
+  const gateway = govConfig.value.post_gateway_pct ?? 0
+  const creator = govConfig.value.post_creator_pct ?? 0
+  const pmPool = govConfig.value.post_pm_pct ?? 0
+  const total = foundation + gateway + creator + pmPool
+  
+  // If values don't sum to 100, calculate reserve to make up the difference
+  const reserve = Math.max(0, 100 - total)
+  
+  return { creator, foundation, gateway, pmPool, reserve }
+})
+
+// Current revenue splits based on selected phase
+const revenueSplits = computed(() => {
+  return pmPhase.value === 'during' ? duringPmSplits.value : afterPmSplits.value
+})
+
+// Dynamic pie chart gradient based on governance config and selected phase
+const pieChartStyle = computed(() => {
+  const { creator, foundation, gateway, pmPool } = revenueSplits.value
+  
+  // Convert percentages to degrees (percentage * 3.6 = degrees)
+  const creatorEnd = creator * 3.6
+  const foundationEnd = creatorEnd + (foundation * 3.6)
+  const gatewayEnd = foundationEnd + (gateway * 3.6)
+  const pmPoolEnd = gatewayEnd + (pmPool * 3.6)
+  
+  return {
+    background: `conic-gradient(
+      #28a745 0deg ${creatorEnd}deg,
+      #667eea ${creatorEnd}deg ${foundationEnd}deg,
+      #9b59b6 ${foundationEnd}deg ${gatewayEnd}deg,
+      #ffc107 ${gatewayEnd}deg ${pmPoolEnd}deg
+    )`
+  }
+})
+
 onMounted(() => {
   loadFeaturedDApps()
+  // Fetch governance config for dynamic revenue splits
+  fetchConfig(true)
 })
 
 async function loadFeaturedDApps() {
@@ -757,6 +873,7 @@ async function loadFeaturedDApps() {
   position: relative;
 }
 
+/* ZK Proof - static icon with pulsing ring */
 .zk-visual .zk-icon {
   width: 80px;
   height: 80px;
@@ -771,34 +888,17 @@ async function loadFeaturedDApps() {
   z-index: 1;
 }
 
-.proof-particles {
+.zk-visual::after {
+  content: '';
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-}
-
-.proof-particles span {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--primary);
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(102, 126, 234, 0.4);
   border-radius: 50%;
-  opacity: 0.5;
-  animation: particle 2s ease-in-out infinite;
+  animation: pulse-ring 2s ease-out infinite;
 }
 
-.proof-particles span:nth-child(1) { animation-delay: 0s; }
-.proof-particles span:nth-child(2) { animation-delay: 0.5s; }
-.proof-particles span:nth-child(3) { animation-delay: 1s; }
-
-@keyframes particle {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50% { transform: translateY(-20px); opacity: 0.8; }
-}
-
+/* Homomorphic Encryption - static icon with pulsing ring */
 .homomorphic-visual .homo-icon {
   width: 80px;
   height: 80px;
@@ -809,34 +909,22 @@ async function loadFeaturedDApps() {
   justify-content: center;
   font-size: 2rem;
   color: white;
+  position: relative;
+  z-index: 1;
 }
 
-.calc-particles {
+.homomorphic-visual::after {
+  content: '';
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  font-size: 0.875rem;
-  color: #28a745;
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(40, 167, 69, 0.4);
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
+  animation-delay: 0.5s;
 }
 
-.calc-particles span {
-  position: absolute;
-  animation: calc-float 3s ease-in-out infinite;
-}
-
-.calc-particles span:nth-child(1) { animation-delay: 0s; }
-.calc-particles span:nth-child(2) { animation-delay: 1s; }
-.calc-particles span:nth-child(3) { animation-delay: 2s; }
-
-@keyframes calc-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
+/* User Control - static icon with pulsing ring */
 .control-visual .control-icon {
   width: 80px;
   height: 80px;
@@ -851,27 +939,20 @@ async function loadFeaturedDApps() {
   z-index: 1;
 }
 
-.control-dials {
+.control-visual::after {
+  content: '';
   position: absolute;
-  inset: 0;
-}
-
-.dial {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  background: #fd7e14;
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(253, 126, 20, 0.4);
   border-radius: 50%;
-  animation: dial-spin 4s ease-in-out infinite;
+  animation: pulse-ring 2s ease-out infinite;
+  animation-delay: 1s;
 }
 
-.dial-1 { top: 20%; left: 20%; animation-delay: 0s; }
-.dial-2 { top: 20%; right: 20%; animation-delay: 1.5s; }
-.dial-3 { bottom: 20%; left: 50%; transform: translateX(-50%); animation-delay: 3s; }
-
-@keyframes dial-spin {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.3); }
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
 }
 
 .solution-card h4 {
@@ -934,12 +1015,6 @@ async function loadFeaturedDApps() {
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: conic-gradient(
-    #28a745 0deg 180deg,
-    #667eea 180deg 288deg,
-    #ffc107 288deg 324deg,
-    rgba(255, 255, 255, 0.3) 324deg 360deg
-  );
   position: relative;
 }
 
@@ -975,9 +1050,49 @@ async function loadFeaturedDApps() {
 }
 
 .legend-color.creator { background: #28a745; }
-.legend-color.platform { background: #667eea; }
+.legend-color.foundation { background: #667eea; }
+.legend-color.gateway { background: #9b59b6; }
 .legend-color.pm { background: #ffc107; }
-.legend-color.reserve { background: rgba(255, 255, 255, 0.3); }
+
+/* PM Phase Toggle */
+.pm-phase-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+.toggle-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  color: white;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: var(--primary);
+}
+
+.phase-description {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 280px;
+  min-height: 4.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .revenue-features {
   display: flex;

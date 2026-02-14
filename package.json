@@ -51,7 +51,8 @@
     "playwright": "^1.57.0",
     "prettier": "^3.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.2.4"
   },
   "engines": {
     "node": ">=18.0.0",

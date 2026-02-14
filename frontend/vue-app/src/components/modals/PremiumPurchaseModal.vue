@@ -42,7 +42,7 @@ const emit = defineEmits<{
 const purchasing = ref(false);
 const purchaseError = ref('');
 
-function formatSui(amount: number): string {
+function formatSui(amount: number | undefined): string {
   return `${(amount ?? 0).toFixed(4)} SUI`;
 }
 
