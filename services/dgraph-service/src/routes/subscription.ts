@@ -113,7 +113,7 @@ router.get('/status', async (req, res) => {
     if (isDGraphAvailable()) {
       try {
         const query = `
-          query status($subscriber: string, $now: datetime) {
+          query status($subscriber: string, $now: string) {
             subs(func: type(Subscription)) @filter(
               eq(subscriber, $subscriber) AND eq(status, "active") AND gt(expiresAt, $now)
             ) {

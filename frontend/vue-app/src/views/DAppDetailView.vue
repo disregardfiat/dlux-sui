@@ -903,9 +903,9 @@ async function fetchMarkets(dappId: string, owner?: string, permlink?: string) {
       fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/resolved`),
       fetch(`${DGRAPH_SERVICE}/safety/dapp/${encodeURIComponent(dappId)}`)
     ]);
-    const activeData = await activeRes.json();
-    const resolvedData = await resolvedRes.json();
-    let safetyData = await safetyRes.json();
+    const activeData = activeRes.ok ? await activeRes.json().catch(() => ({})) : {};
+    const resolvedData = resolvedRes.ok ? await resolvedRes.json().catch(() => ({})) : {};
+    const safetyData = safetyRes.ok ? await safetyRes.json().catch(() => ({})) : {};
     activeMarkets.value = activeData.markets || [];
     let resolved = resolvedData.markets || [];
     // Fallback 1: safety API uses type(PredictionMarket) and may find resolved markets when /resolved returns empty
@@ -921,7 +921,7 @@ async function fetchMarkets(dappId: string, owner?: string, permlink?: string) {
     if (resolved.length === 0 && altId && altId !== dappId) {
       try {
         const altRes = await fetch(`${DGRAPH_SERVICE}/safety/dapp/${encodeURIComponent(altId)}`);
-        const altData = await altRes.json();
+        const altData = altRes.ok ? await altRes.json().catch(() => ({})) : {};
         if (altData.resolvedMarkets?.length > 0) {
           resolved = altData.resolvedMarkets.map((m: any) => ({
             ...m,

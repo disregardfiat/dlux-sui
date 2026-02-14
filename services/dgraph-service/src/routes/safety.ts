@@ -45,7 +45,7 @@ router.get('/dapp/:dappId', async (req, res) => {
     }
     const now = new Date().toISOString();
     const query = `
-      query safety($dappId: string, $now: datetime) {
+      query safety($dappId: string, $now: string) {
         active(func: type(PredictionMarket)) @filter(eq(dappId, $dappId) AND eq(status, "open") AND gt(expiresAt, $now)) {
           id dappId status resolution totalPool safePool unsafePool expiresAt
         }

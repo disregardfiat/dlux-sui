@@ -139,7 +139,7 @@ router.get('/dapp/:dappId', async (req, res) => {
     const now = new Date().toISOString();
     const query = `
       query activeMarkets($dappId: string, $now: string) {
-        markets(func: eq(dgraph_type, "PredictionMarket")) @filter(
+        markets(func: type(PredictionMarket)) @filter(
           eq(dappId, $dappId) AND eq(status, "open") AND ge(expiresAt, $now)
         ) {
           id dappId safetyMetric description status resolution
