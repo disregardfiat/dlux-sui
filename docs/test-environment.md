@@ -168,6 +168,38 @@ Example: `https://h1a2b3c4d5e6f7890...walrus.dlux.io/@0x1a2b3c4d.../mygame`. Ass
 
 ## Troubleshooting
 
+### Deploy not reflecting on dlux.io / test.dlux.io
+
+Both domains are served by the same PM2 process (`vue-frontend` on port 3006). If you pushed and ran deploy but the site still shows old content:
+
+1. **Confirm the server has the latest commit**
+   ```bash
+   cd /home/ubuntu/dlux-sui && git log -1 --oneline
+   ```
+   Compare to your latest commit on GitHub (e.g. `main`).
+
+2. **Confirm the build output is fresh**
+   ```bash
+   ls -la /home/ubuntu/dlux-sui/frontend/vue-app/dist/
+   ```
+   `index.html` and `assets/` should have modification times from the last deploy.
+
+3. **Confirm PM2 is serving the built app (not dev server)**
+   ```bash
+   pm2 show vue-frontend
+   ```
+   The script should be `vite preview` (or `npx vite preview --host --port 3006`) with **cwd** = `.../frontend/vue-app`. If it shows `vite` (dev server), the app is not using `dist/` and deploy builds won’t appear. Fix by stopping, then starting with:
+   ```bash
+   cd /home/ubuntu/dlux-sui/frontend/vue-app && npx vite preview --host --port 3006
+   ```
+   Then add/save in PM2 so it survives reboot.
+
+4. **Run a frontend-only deploy**
+   ```bash
+   cd /home/ubuntu/dlux-sui && bash scripts/deploy-frontend-only.sh
+   ```
+   This pulls, builds, and restarts `vue-frontend`. Then hard-refresh the site (Ctrl+Shift+R) to avoid cached JS/CSS.
+
 ### Caddy Not Reloading
 ```bash
 sudo systemctl reload caddy

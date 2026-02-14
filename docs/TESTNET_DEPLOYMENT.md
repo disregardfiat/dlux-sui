@@ -139,7 +139,8 @@ sui move test
 
 ### UI changes not visible (e.g. SuiNS in navbar / dApp links)
 - PM2 must run the **built** app: `npx vite preview --host --port 3006` (not `npx vite`). If it runs the dev server, it doesn’t use `dist/`.
-- On the server, run a clean frontend build and restart: `bash scripts/deploy-frontend-only.sh` (from repo root). Then hard-refresh the site (Ctrl+Shift+R) and re-login so the wallet label gets the SuiNS name from the auth response.
+- On the server, run: `bash scripts/deploy-frontend-only.sh` (from repo root). That script pulls, builds, and restarts `vue-frontend`. Then hard-refresh the site (Ctrl+Shift+R).
+- If it still does not update: confirm `git log -1` on the server matches your latest push; confirm `frontend/vue-app/dist/` has recent mtimes; run `pm2 show vue-frontend` and check the script is `vite preview` with cwd `frontend/vue-app`. See [Test Environment - Deploy not reflecting](test-environment.md#deploy-not-reflecting-on-dluxio--testdluxio) for full steps.
 
 ### Indexer shows 0 events
 - Expected for fresh deployment (no on-chain transactions yet)
