@@ -340,7 +340,8 @@ POST /ads/consent                     # Set ad consent
 #### Prediction Markets
 ```http
 POST /markets                         # Create prediction market
-GET /markets/dapp/{dappId}            # Get dApp markets
+GET /markets/dapp/{dappId}            # Get active dApp markets
+GET /markets/dapp/{dappId}/resolved   # Get resolved dApp markets (bettor count, total pool)
 POST /markets/{id}/bets               # Place bet
 GET /markets/{id}/status              # Get market status
 POST /markets/{id}/resolve            # Resolve market

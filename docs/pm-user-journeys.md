@@ -275,6 +275,12 @@ if (safePool > unsafePool) {
 }
 ```
 
+**dApp Detail Page (Post-Resolution):**
+After a market resolves, the dApp detail page at `dlux.io/dapps/{id}` shows:
+- **Safe resolution**: "PM resolved as safe and accurate with N bettors (not the author)" and total capital (SUI)
+- **Unsafe resolution**: "PM resolved as unsafe or inaccurate with N bettors" and total capital (SUI)
+- No Place Bet button; an Explorer link is available to view the market on-chain.
+
 **On-Chain Resolution:**
 ```move
 // In prediction_markets.move

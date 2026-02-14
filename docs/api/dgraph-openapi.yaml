@@ -215,6 +215,19 @@ paths:
         '200':
           description: markets array
 
+  /markets/dapp/{dappId}/resolved:
+    get:
+      tags: [markets]
+      summary: Resolved markets for a dApp (with bettor count, total pool)
+      parameters:
+        - name: dappId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: markets array (resolution, totalPool, bets for bettor count)
+
   /markets/payouts/{owner}:
     get:
       tags: [markets]

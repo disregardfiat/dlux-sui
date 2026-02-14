@@ -87,7 +87,7 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 - **Folder Upload**: Select a folder to upload an entire app directory; relative paths (e.g. `src="js/app.js"`) are resolved via `manifest.pathMap`
 - **Remix UI**: Include `remix.html` in your folder upload to enable the Remix button—a page where users can swap assets (e.g. video player HTML with a different media file) and post a new dApp. Remix button is hidden when no `remix.html` is present.
 - **License**: Creative Commons selector (CC0, CC-BY, CC-BY-SA, etc.) when posting; recommended for remixable dApps to respect licensing.
-- **Safety Reviews**: Prediction markets for content moderation
+- **Safety Reviews**: Prediction markets for content moderation. When a PM resolves, the dApp detail page shows the outcome (e.g. "PM resolved as safe and accurate with N bettors (not the author)" or "PM resolved as unsafe or inaccurate with N bettors"), total capital placed, and an Explorer link—no Place Bet button.
 - **Posting Fee**: Min `2×storage + votable_posting_fee`; 50% to Foundation, 50% buys creator a YES vote in PM
 - **Media Support**: Walrus blob storage for assets
 - **Premium Content**: Monetize content with Seal encryption and paywalls
@@ -98,7 +98,7 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 - **ZK Ad Views**: Ad views are verified with zero-knowledge proofs (no viewer identity revealed)
 - **Homomorphic Analytics**: Aggregate ad stats computed on encrypted data
 - **Merkle Batch Proofs**: On-chain verification uses Merkle roots for privacy
-- **Content Gating**: Ads can be shown before content with signed "Continue to Content"
+- **Content Gating**: Ads can be shown before content with signed "Continue to Content". Ads appear only when the Walrus gateway serves dApp content (e.g. `*.walrus.dlux.io`); viewing the dApp detail page on dlux.io (e.g. `/dapps/{id}`) does not show ads.
 - **Explicit Consent**: Ad tracking only after opt-in to privacy policy
 - **Age Verification**: Session-based age confirmation dialogs for NSFW and age-restricted content
 
@@ -192,6 +192,7 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 - `GET /markets/payouts/:owner` - Payout balance
 - `GET /markets/high-payout` - Markets by pool size
 - `GET /markets/dapp/:dappId` - Active markets for dApp
+- `GET /markets/dapp/:dappId/resolved` - Resolved markets with bettor count and total pool
 - `POST /markets` - Create prediction market (returns transaction ID)
 - `POST /markets/:id/bets` - Place prediction market bet (returns transaction ID)
 - `GET /safety/dapp/:dappId` - Safety status for dApp

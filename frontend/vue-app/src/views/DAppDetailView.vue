@@ -1,11 +1,5 @@
 <template>
   <div class="dapp-detail">
-    <AdOverlay
-      v-if="dapp && showAdOverlay"
-      :countdown-seconds="0"
-      :show="true"
-      @skip="showAdOverlay = false"
-    />
     <div v-if="loading" class="text-center py-4">
       <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
     </div>
@@ -71,6 +65,7 @@
           Prediction Markets
         </div>
         <div class="card-body">
+          <!-- Active (open) markets: show Place Bet -->
           <div v-if="activeMarkets.length > 0">
             <div v-for="market in activeMarkets" :key="market.id" class="mb-3 p-3 bg-light rounded">
               <div class="d-flex justify-content-between align-items-start mb-2">
@@ -123,6 +118,43 @@
                   target="_blank" 
                   rel="noopener"
                   class="text-decoration-none"
+                  title="View on Explorer"
+                >
+                  <i class="bi bi-box-arrow-up-right"></i> Explorer
+                </a>
+              </div>
+            </div>
+          </div>
+          <!-- Resolved markets: show outcome stats (no Place Bet) -->
+          <div v-else-if="resolvedMarkets.length > 0" class="resolved-pm-stats">
+            <div
+              v-for="market in resolvedMarkets"
+              :key="market.id"
+              class="mb-3 p-3 rounded"
+              :class="market.resolution === 'safe' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'"
+            >
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span
+                  class="badge"
+                  :class="market.resolution === 'safe' ? 'bg-success' : 'bg-danger'"
+                >
+                  {{ market.resolution === 'safe' ? 'Safe & Accurate' : 'Unsafe or Inaccurate' }}
+                </span>
+                <span class="fw-bold">{{ formatMetric(market.safetyMetric) }}</span>
+              </div>
+              <p class="mb-2 small text-muted">
+                {{ getResolvedPMSummary(market) }}
+              </p>
+              <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted">
+                  Total capital: {{ mistToSui(market.totalPool || 0).toFixed(4) }} SUI
+                </span>
+                <a
+                  v-if="market.id && market.id.startsWith('0x')"
+                  :href="buildExplorerObjectUrl(market.id)"
+                  target="_blank"
+                  rel="noopener"
+                  class="small text-decoration-none ms-2"
                   title="View on Explorer"
                 >
                   <i class="bi bi-box-arrow-up-right"></i> Explorer
@@ -432,7 +464,6 @@ import { usePremiumContent, type PremiumContent } from '@/composables/usePremium
 import { useSuiWallet } from '@/composables/useSuiWallet';
 import { useSocial } from '@/composables/useSocial';
 import { buildSuiTransferTransaction } from '@/composables/useSuiTransfer';
-import AdOverlay from '@/components/AdOverlay.vue';
 import PMBetModal from '@/components/modals/PMBetModal.vue';
 import PremiumPurchaseModal from '@/components/modals/PremiumPurchaseModal.vue';
 import { buildCreateCampaignTransaction, isOnChainCampaignAvailable } from '@/composables/useAdCampaignOnChain';
@@ -466,8 +497,8 @@ type DAppData = {
 const dapp = ref<DAppData | null>(null);
 const loading = ref(true);
 const error = ref('');
-const showAdOverlay = ref(true);
 const activeMarkets = ref<PredictionMarket[]>([]);
+const resolvedMarkets = ref<any[]>([]);
 const showPMBetModal = ref(false);
 const selectedPMMarket = ref<PredictionMarket | null>(null);
 const pmBetError = ref('');
@@ -507,7 +538,7 @@ const canRegisterAsAd = computed(() => {
   // If there are active (open) markets, the PM hasn't cleared yet
   if (activeMarkets.value.some((m: any) => m.status === 'open')) return false;
   // If there are resolved=safe markets, PM cleared and passed
-  if (activeMarkets.value.some((m: any) => m.resolution === 'safe')) return true;
+  if (resolvedMarkets.value.some((m: any) => m.resolution === 'safe')) return true;
   // No markets = PM never started; do NOT treat as "passed safety review"
   return false;
 });
@@ -742,6 +773,34 @@ function getBettorCount(market: PredictionMarket): number {
   return uniqueBettors.size;
 }
 
+/** Bettor count for resolved market: includes author (posting fee) + unique bettors from bets. */
+function getResolvedBettorCount(market: any): number {
+  const bets = market.bets || [];
+  const uniqueFromBets = new Set(bets.map((b: any) => b.bettor));
+  const hasPostingFee = (market.postingFeeContribution || 0) > 0;
+  const author = market.triggeredByAddress;
+  if (hasPostingFee && author && !uniqueFromBets.has(author)) {
+    uniqueFromBets.add(author);
+  }
+  return uniqueFromBets.size;
+}
+
+/** Community bettor count (excludes author) for resolved market. */
+function getCommunityBettorCount(market: any): number {
+  const total = getResolvedBettorCount(market);
+  const hasPostingFee = (market.postingFeeContribution || 0) > 0;
+  return hasPostingFee ? Math.max(0, total - 1) : total;
+}
+
+function getResolvedPMSummary(market: any): string {
+  const totalBettors = getResolvedBettorCount(market);
+  const communityBettors = getCommunityBettorCount(market);
+  if (market.resolution === 'safe') {
+    return `PM resolved as safe and accurate with ${communityBettors} ${communityBettors === 1 ? 'bettor' : 'bettors'} (not the author).`;
+  }
+  return `PM resolved as unsafe or inaccurate with ${totalBettors} ${totalBettors === 1 ? 'bettor' : 'bettors'}.`;
+}
+
 function openPMBetModal(market: PredictionMarket) {
   selectedPMMarket.value = market;
   showPMBetModal.value = true;
@@ -836,27 +895,17 @@ async function fetchPremiumContent(dappId: string) {
 
 async function fetchMarkets(dappId: string) {
   try {
-    // Fetch active (open) markets
-    const res = await fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}`);
-    const data = await res.json();
-    const markets = data.markets || [];
-
-    // Also try to fetch all markets for this dApp (including resolved) for ad registration eligibility
-    try {
-      const allRes = await fetch(`${DGRAPH_SERVICE}/markets/fees/${encodeURIComponent(dappId)}`);
-      if (allRes.ok) {
-        const allData = await allRes.json();
-        // If there are markets but none are open, it means they resolved
-        // Mark them as resolved-safe for the canRegisterAsAd check
-        if (allData.markets > 0 && markets.length === 0) {
-          markets.push({ id: 'resolved', status: 'resolved', resolution: 'safe', safetyMetric: 'nsfw' });
-        }
-      }
-    } catch { /* non-critical */ }
-
-    activeMarkets.value = markets;
+    const [activeRes, resolvedRes] = await Promise.all([
+      fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}`),
+      fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/resolved`)
+    ]);
+    const activeData = await activeRes.json();
+    const resolvedData = await resolvedRes.json();
+    activeMarkets.value = activeData.markets || [];
+    resolvedMarkets.value = resolvedData.markets || [];
   } catch {
     activeMarkets.value = [];
+    resolvedMarkets.value = [];
   }
 }
 

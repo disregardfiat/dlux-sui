@@ -99,6 +99,36 @@ router.get('/high-payout', async (req, res) => {
   }
 });
 
+// GET /markets/dapp/:dappId/resolved - resolved markets with full stats (bettor count, total pool)
+router.get('/dapp/:dappId/resolved', async (req, res) => {
+  try {
+    if (!isDGraphAvailable()) {
+      return res.json({ markets: [] });
+    }
+    const { dappId } = req.params;
+    const query = `
+      query resolvedMarkets($dappId: string) {
+        markets(func: eq(dgraph_type, "PredictionMarket")) @filter(
+          eq(dappId, $dappId) AND eq(status, "resolved")
+        ) {
+          id dappId safetyMetric description status resolution
+          totalPool safePool unsafePool postingFeeContribution
+          triggeredByAddress resolvedAt
+          bets: bets @filter(eq(dgraph_type, "PredictionBet")) {
+            bettor
+          }
+        }
+      }
+    `;
+    const result = await dgraphClient.query(query, { $dappId: dappId });
+    const markets = (result.markets || []).map(mapMarket);
+    res.json({ markets });
+  } catch (error: any) {
+    logger.error('Error getting resolved markets for dApp', error);
+    res.status(500).json({ error: error.message || 'Failed to get resolved markets' });
+  }
+});
+
 // GET /markets/dapp/:dappId - active markets for dApp
 router.get('/dapp/:dappId', async (req, res) => {
   try {
