@@ -76,7 +76,7 @@
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                   <span class="fw-bold">{{ formatMetric(market.safetyMetric) }}</span>
-                  <span class="small text-muted ms-2">Expires: {{ market.expiresAt?.slice?.(0, 10) || '—' }}</span>
+                  <span class="small text-muted ms-2">Expires: {{ formatDateShort(market.expiresAt) }}</span>
                 </div>
                 <button
                   type="button"
@@ -426,7 +426,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { buildDappRemixUrl, buildSandboxUrl, getSuiServiceUrl, getDgraphServiceUrl, resolveWalrusUrl, buildExplorerTxUrl, buildExplorerAddressUrl, buildExplorerObjectUrl } from '@/config/links';
+import { buildDappRemixUrl, buildSandboxUrl, getSuiServiceUrl, getDgraphServiceUrl, getWalrusServiceUrl, resolveWalrusUrl, buildExplorerTxUrl, buildExplorerAddressUrl, buildExplorerObjectUrl } from '@/config/links';
 import { useAuthStore } from '@/stores/auth';
 import { usePremiumContent, type PremiumContent } from '@/composables/usePremiumContent';
 import { useSuiWallet } from '@/composables/useSuiWallet';
@@ -668,6 +668,13 @@ function getInitials(value: string): string {
 function formatMetric(metric: string): string {
   if (!metric || metric === '—') return metric || '—';
   return metric.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function formatDateShort(date: Date | string | undefined | null): string {
+  if (!date) return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '—';
+  return d.toISOString().slice(0, 10);
 }
 
 // Convert MIST to SUI (1 SUI = 1,000,000,000 MIST)
@@ -994,7 +1001,7 @@ watch(() => route.params.id, fetchDapp, { immediate: true });
 }
 
 .blob-list {
-  background: #f8f9fa;
+  background: var(--bg-tertiary);
   border-radius: 4px;
   padding: 0.75rem;
 }

@@ -147,7 +147,7 @@
           <div v-else class="proposals-list">
             <div
               v-for="proposal in proposals"
-              :key="proposal.proposalId || proposal.txDigest"
+              :key="String(proposal.proposalId ?? proposal.txDigest ?? '')"
               class="proposal-card"
             >
               <div class="proposal-header">
@@ -206,7 +206,7 @@
           <div class="proposals-list">
             <div
               v-for="proposal in pastProposals"
-              :key="proposal.proposalId || proposal.txDigest"
+              :key="String(proposal.proposalId ?? proposal.txDigest ?? '')"
               class="proposal-card past"
             >
               <div class="proposal-header">
@@ -492,7 +492,7 @@ function formatDate(date: string | undefined | null): string {
 <style scoped>
 .governance-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .hero {
@@ -505,8 +505,8 @@ function formatDate(date: string | undefined | null): string {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #888;
-  border-bottom: 1px solid #e9ecef;
+  color: var(--text-light);
+  border-bottom: 1px solid var(--border-primary);
   padding-bottom: 0.3rem;
 }
 
@@ -517,8 +517,8 @@ function formatDate(date: string | undefined | null): string {
 }
 
 .variable-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
@@ -526,7 +526,7 @@ function formatDate(date: string | undefined | null): string {
 
 .variable-label {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
@@ -535,7 +535,7 @@ function formatDate(date: string | undefined | null): string {
 .variable-value {
   font-size: 1.4rem;
   font-weight: bold;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .proposals-list {
@@ -545,15 +545,15 @@ function formatDate(date: string | undefined | null): string {
 }
 
 .proposal-card {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.25rem;
-  background: #fff;
+  background: var(--bg-card);
   transition: border-color 0.2s;
 }
 
 .proposal-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
 }
 
 .proposal-card.past {
@@ -573,7 +573,7 @@ function formatDate(date: string | undefined | null): string {
 }
 
 .proposal-description {
-  color: #555;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
   white-space: pre-wrap;

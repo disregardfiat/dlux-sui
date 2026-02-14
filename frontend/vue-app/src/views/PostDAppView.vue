@@ -37,7 +37,7 @@
                 class="form-control" 
                 :value="permlinkPreview"
                 readonly
-                style="background: #f5f5f5;"
+                :style="{ background: 'var(--bg-tertiary)' }"
               />
             </div>
             <small class="text-muted">
@@ -109,7 +109,6 @@
                         type="text" 
                         class="form-control"
                         placeholder="1.0.0"
-                        value="1.0.0"
                       />
                       <button v-if="isEditMode" type="button" class="btn btn-outline-secondary btn-sm" @click="bumpVersion">
                         Bump
@@ -642,7 +641,16 @@ const { config: govConfig, fetchConfig: fetchGovConfig } = useGovernanceConfig()
 // On-chain posting availability
 const onChainAvailable = computed(() => isOnChainPostingAvailable());
 
-const initialFormData = () => ({
+const initialFormData = (): {
+  name: string;
+  permlink: string;
+  description: string;
+  version: string;
+  category: string;
+  tags: string[];
+  manifest: DAppManifest;
+  blobIds: string[];
+} => ({
   name: '',
   permlink: '',
   description: '',
@@ -652,12 +660,17 @@ const initialFormData = () => ({
   manifest: {
     entryPoint: '/index.html',
     assets: [] as string[],
-    metadata: {} as Record<string, any>,
+    metadata: {
+      title: '',
+      description: '',
+      author: '',
+      version: '1.0.0'
+    } as { [key: string]: unknown },
     videoUrl: '',
     audioUrl: '',
     streamUrl: '',
     streamType: 'hls'
-  } as DAppManifest,
+  },
   blobIds: [] as string[]
 });
 
@@ -681,7 +694,7 @@ const existingPathMapHasHtml = computed(() =>
 /** Bump semver patch (e.g. 1.0.0 → 1.0.1). */
 function bumpVersionPatch(v: string): string {
   const match = String(v || '1.0.0').match(/^(\d+)\.(\d+)\.(\d+)(.*)$/);
-  if (match) {
+  if (match && match[3] !== undefined) {
     const patch = parseInt(match[3], 10) + 1;
     return `${match[1]}.${match[2]}.${patch}${match[4] || ''}`;
   }
@@ -701,7 +714,8 @@ onMounted(async () => {
   const editId = route.query.edit as string | undefined;
   if (editId?.trim()) {
     try {
-      const res = await fetch(`${getSuiServiceUrl()}/dapps/${encodeURIComponent(editId.trim())}`);
+      const editIdStr = editId.trim();
+      const res = await fetch(`${getSuiServiceUrl()}/dapps/${encodeURIComponent(editIdStr)}`);
       if (!res.ok) throw new Error('dApp not found');
       const d = await res.json();
       const owner = String(d.owner || '').toLowerCase();
@@ -725,10 +739,10 @@ onMounted(async () => {
           entryPoint: d.manifest?.entryPoint ?? '/index.html',
           assets: Array.isArray(d.manifest?.assets) ? [...d.manifest.assets] : [],
           metadata: meta,
-          videoUrl: d.manifest?.videoUrl || '',
-          audioUrl: d.manifest?.audioUrl || '',
-          streamUrl: d.manifest?.streamUrl || '',
-          streamType: d.manifest?.streamType || 'hls'
+          videoUrl: d.manifest?.videoUrl ?? undefined,
+          audioUrl: d.manifest?.audioUrl ?? undefined,
+          streamUrl: d.manifest?.streamUrl ?? undefined,
+          streamType: d.manifest?.streamType ?? 'hls'
         },
         blobIds: Array.isArray(d.blobIds) ? [...d.blobIds] : []
       };
@@ -743,19 +757,23 @@ onMounted(async () => {
       audioFile.value = null;
       iconFile.value = null;
       thumbnailFile.value = null;
-      videoPreview.value = null;
-      audioPreview.value = null;
+      videoPreview.value = undefined;
+      audioPreview.value = undefined;
       // Show current icon/thumbnail from manifest (resolved Walrus URLs)
       const iconUrl = resolveWalrusUrl(meta.icon);
       const thumbUrl = resolveWalrusUrl(meta.thumbnail);
-      iconPreview.value = iconUrl || null;
-      thumbnailPreview.value = thumbUrl || null;
+      iconPreview.value = iconUrl !== undefined ? iconUrl : undefined;
+      thumbnailPreview.value = thumbUrl !== undefined ? thumbUrl : undefined;
       error.value = '';
       contentType.value = d.manifest?.videoUrl ? 'video' : d.manifest?.audioUrl ? 'audio' : d.manifest?.streamUrl ? 'livestream' : 'webapp';
       return;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to load dApp for editing.';
       editDappId.value = null;
+      videoPreview.value = undefined;
+      audioPreview.value = undefined;
+      iconPreview.value = undefined;
+      thumbnailPreview.value = undefined;
     }
   }
   formData.value = initialFormData();
@@ -772,10 +790,10 @@ onMounted(async () => {
   audioFile.value = null;
   iconFile.value = null;
   thumbnailFile.value = null;
-  videoPreview.value = null;
-  audioPreview.value = null;
-  iconPreview.value = null;
-  thumbnailPreview.value = null;
+  videoPreview.value = undefined;
+  audioPreview.value = undefined;
+  iconPreview.value = undefined;
+  thumbnailPreview.value = undefined;
   error.value = '';
 });
 
@@ -815,10 +833,10 @@ const audioFile = ref<File | null>(null);
 const iconFile = ref<File | null>(null);
 const thumbnailFile = ref<File | null>(null);
 
-const videoPreview = ref<string | null>(null);
-const audioPreview = ref<string | null>(null);
-const iconPreview = ref<string | null>(null);
-const thumbnailPreview = ref<string | null>(null);
+const videoPreview = ref<string | undefined>(undefined);
+const audioPreview = ref<string | undefined>(undefined);
+const iconPreview = ref<string | undefined>(undefined);
+const thumbnailPreview = ref<string | undefined>(undefined);
 
 const submitting = ref(false);
 const error = ref('');
@@ -847,7 +865,7 @@ const defaultSubdomainPreview = computed(() => {
   const hex = user.value?.suiAddress?.replace(/^0x/, '').toLowerCase().slice(0, 62);
   return hex ? `h${hex}` : 'h…';
 });
-const defaultDappHostPreview = computed(() => buildDappHost(defaultSubdomainPreview.value));
+const defaultDappHostPreview = computed(() => buildDappHost(defaultSubdomainPreview.value || ''));
 
 const permlinkPreview = computed(() => {
   const suins = user.value?.suinsName?.replace(/\.sui$/, '');
@@ -892,11 +910,11 @@ const htmlEntryPointOptions = computed(() => {
 });
 
 /** Selected entry point file path (resolved to blobId at submit via pathToBlob). */
-const entryPointFileKey = ref('');
+const entryPointFileKey = ref<string | undefined>('');
 
 // Auto-select entry point when there is exactly one HTML file
 watch(htmlEntryPointOptions, (opts) => {
-  if (opts.length === 1 && !entryPointFileKey.value) entryPointFileKey.value = opts[0].value;
+  if (opts.length === 1 && !entryPointFileKey.value) entryPointFileKey.value = opts[0]?.value ?? '';
   if (opts.length === 0) entryPointFileKey.value = '';
   const values = new Set(opts.map((o) => o.value));
   if (entryPointFileKey.value && !values.has(entryPointFileKey.value)) entryPointFileKey.value = opts[0]?.value ?? '';
@@ -963,8 +981,8 @@ function resetUploads() {
   uploadedFiles.value = [];
   videoFile.value = null;
   audioFile.value = null;
-  videoPreview.value = null;
-  audioPreview.value = null;
+  videoPreview.value = undefined;
+  audioPreview.value = undefined;
 }
 
 function handleFileUpload(event: Event) {
@@ -1072,7 +1090,9 @@ async function runWithConcurrencyLimit<T, R>(
   async function worker(): Promise<void> {
     while (nextIndex < items.length) {
       const i = nextIndex++;
-      const result = await fn(items[i], i);
+      const item = items[i];
+      if (item === undefined) continue;
+      const result = await fn(item, i);
       results[i] = result;
       completedCount++;
       onItemComplete?.(i, completedCount, items.length);
@@ -1115,6 +1135,12 @@ async function submitDApp() {
       formData.value.manifest.metadata.releaseNote = releaseNote.value.trim();
     }
 
+    // Ensure manifest fields are initialized
+    if (!formData.value.manifest.videoUrl) formData.value.manifest.videoUrl = undefined;
+    if (!formData.value.manifest.audioUrl) formData.value.manifest.audioUrl = undefined;
+    if (!formData.value.manifest.streamUrl) formData.value.manifest.streamUrl = undefined;
+    if (!formData.value.manifest.streamType) formData.value.manifest.streamType = 'hls';
+
     // Upload all files to Walrus
     const blobIds: string[] = [];
 
@@ -1136,7 +1162,9 @@ async function submitDApp() {
 
     for (let i = 0; i < uploadedFiles.value.length; i++) {
       const file = uploadedFiles.value[i];
-      const blobId = fileResults[i];
+      if (!file) continue;
+      const blobId = fileResults[i] as string | undefined;
+      if (!blobId) continue;
       blobIds.push(blobId);
       formData.value.manifest.assets.push(`/walrus/${blobId}`);
       const relPath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
@@ -1153,7 +1181,7 @@ async function submitDApp() {
     if (isEditMode.value && Object.keys(pathToBlob).length > 0 && !firstHtmlBlobId) {
       const htmlKey = Object.keys(pathToBlob).find((k) => k.toLowerCase().endsWith('.html') || k.toLowerCase().endsWith('.htm'));
       if (htmlKey) {
-        firstHtmlBlobId = pathToBlob[htmlKey];
+        firstHtmlBlobId = pathToBlob[htmlKey] ?? null;
         firstHtmlPath = htmlKey;
       }
     }
@@ -1164,16 +1192,16 @@ async function submitDApp() {
     blobIds.push(...pathBlobIds);
 
     // Resolve entry point: user-selected file path → blobId, or first HTML blob, or existing manifest, or first blob
-    const selectedBlobId = entryPointFileKey.value && pathToBlob[entryPointFileKey.value]
+    const selectedBlobId: string | undefined = entryPointFileKey.value && pathToBlob[entryPointFileKey.value]
       ? pathToBlob[entryPointFileKey.value]
-      : null;
+      : undefined;
     if (selectedBlobId) {
       formData.value.manifest.entryPoint = selectedBlobId;
     } else if (firstHtmlBlobId) {
       formData.value.manifest.entryPoint = firstHtmlBlobId;
     } else if (typeof formData.value.manifest.entryPoint === 'string' && pathBlobIds.includes(formData.value.manifest.entryPoint)) {
       // Keep existing entry point when in edit mode and no new HTML uploaded
-    } else if (blobIds.length > 0) {
+    } else if (blobIds.length > 0 && blobIds[0]) {
       formData.value.manifest.entryPoint = blobIds[0];
     }
 
@@ -1199,26 +1227,26 @@ async function submitDApp() {
       iconFile.value ? uploadToWalrus(iconFile.value) : Promise.resolve(null),
       thumbnailFile.value ? uploadToWalrus(thumbnailFile.value) : Promise.resolve(null)
     ]);
-    if (videoBlobId) {
-      blobIds.push(videoBlobId);
-      formData.value.manifest.videoUrl = `/walrus/${videoBlobId}`;
-      uploadStep++;
-    }
-    if (audioBlobId) {
-      blobIds.push(audioBlobId);
-      formData.value.manifest.audioUrl = `/walrus/${audioBlobId}`;
-      uploadStep++;
-    }
-    if (iconBlobId) {
-      blobIds.push(iconBlobId);
-      formData.value.manifest.metadata.icon = `/walrus/${iconBlobId}`;
-      uploadStep++;
-    }
-    if (thumbnailBlobId) {
-      blobIds.push(thumbnailBlobId);
-      formData.value.manifest.metadata.thumbnail = `/walrus/${thumbnailBlobId}`;
-      uploadStep++;
-    }
+      if (videoBlobId) {
+        blobIds.push(videoBlobId);
+        formData.value.manifest.videoUrl = `/walrus/${videoBlobId}`;
+        uploadStep++;
+      }
+      if (audioBlobId) {
+        blobIds.push(audioBlobId);
+        formData.value.manifest.audioUrl = `/walrus/${audioBlobId}`;
+        uploadStep++;
+      }
+      if (iconBlobId) {
+        blobIds.push(iconBlobId);
+        formData.value.manifest.metadata.icon = `/walrus/${iconBlobId}`;
+        uploadStep++;
+      }
+      if (thumbnailBlobId) {
+        blobIds.push(thumbnailBlobId);
+        formData.value.manifest.metadata.thumbnail = `/walrus/${thumbnailBlobId}`;
+        uploadStep++;
+      }
 
     // Upload manifest to Walrus (avoids on-chain tx size limit; no limit on file count)
     setProgress('manifest', 'Storing manifest…');
@@ -1245,7 +1273,7 @@ async function submitDApp() {
     }
     const entryBlobId = typeof formData.value.manifest.entryPoint === 'string' && /^[a-zA-Z0-9_-]+$/.test(formData.value.manifest.entryPoint.trim())
       ? formData.value.manifest.entryPoint.trim()
-      : blobIds[0];
+      : blobIds[0] ?? '';
     if (!blobIds.includes(entryBlobId)) {
       throw new Error('Entry point must reference a valid Walrus blob. Ensure your manifest entryPoint is set correctly.');
     }
@@ -1417,7 +1445,7 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
 <style scoped>
 .post-dapp-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .page-header {
@@ -1430,15 +1458,15 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
 }
 
 .permlink-preview {
-  background: white;
+  background: var(--bg-card);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-primary);
 }
 
 .upload-section {
   padding: 1rem;
-  background: #f8f9fa;
+  background: var(--bg-tertiary);
   border-radius: 4px;
 }
 
@@ -1457,13 +1485,13 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
 
 /* Preview Card Styles */
 .preview-card {
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-card);
   max-width: 320px;
   margin: 0 auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .preview-banner {
@@ -1510,8 +1538,8 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: #eef1ff;
-  color: #4c5bd4;
+  background: var(--bg-tertiary);
+  color: var(--accent-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1528,12 +1556,13 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
 
 .preview-description {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-clamp: 2;
 }
 
 .preview-author {
@@ -1546,6 +1575,6 @@ async function submitViaAPI(blobIds: string[], finalPostingFee: number, manifest
 
 .preview-fee {
   padding-top: 0.5rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-primary);
 }
 </style>

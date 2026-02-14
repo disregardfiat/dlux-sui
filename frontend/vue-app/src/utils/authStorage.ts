@@ -46,7 +46,7 @@ const setCookie = (name: string, value: string, days = 7, domain?: string | null
 
 const getCookie = (name: string): string | null => {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  return match && match[1] ? decodeURIComponent(match[1]) : null;
 };
 
 const deleteCookie = (name: string, domain?: string | null) => {

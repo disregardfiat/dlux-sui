@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg" :class="effectiveTheme === 'dark' ? 'navbar-dark bg-dark' : 'navbar-light bg-light'">
       <div class="container">
         <router-link class="navbar-brand d-flex align-items-center gap-2" to="/">
           <img
@@ -20,9 +20,6 @@
         <div id="navbarNav" class="collapse navbar-collapse">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <router-link class="nav-link" to="/">Home</router-link>
-            </li>
-            <li class="nav-item">
               <router-link class="nav-link" to="/dapps">Hub</router-link>
             </li>
             <li class="nav-item">
@@ -41,8 +38,14 @@
           </ul>
 
           <ul class="navbar-nav">
+            <li class="nav-item" :class="effectiveTheme === 'dark' ? 'text-light' : 'text-dark'">
+              <ThemeToggle :theme-class="effectiveTheme" />
+            </li>
             <li v-if="!isAuthenticated" class="nav-item">
-              <button class="btn btn-outline-light" @click="showLoginModal = true">
+              <button 
+                class="btn btn-connect-wallet"
+                @click="showLoginModal = true"
+              >
                 <i class="bi bi-wallet2"></i>
                 Connect Wallet
               </button>
@@ -101,13 +104,26 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTheme, initTheme } from '@/composables/useTheme'
 import WalletLoginModal from '@/components/WalletLoginModal.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { BRAND_LOGO_URL, BRAND_LOGO_MARK_URL, BRAND_LONG_NAME, BRAND_NAME, BRAND_TAGLINE, getSuiServiceUrl } from '@/config/links'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const showLoginModal = ref(false)
+
+// Initialize theme
+const { theme, resolvedTheme } = useTheme()
+
+// Helper to get the actual theme (resolves 'system' to actual dark/light)
+const effectiveTheme = computed(() => {
+  if (theme.value === 'system') {
+    return resolvedTheme.value
+  }
+  return theme.value
+})
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const user = computed(() => authStore.user)
@@ -138,6 +154,9 @@ function backfillSuinsName() {
 }
 
 onMounted(() => {
+  // Initialize theme system once on app mount
+  initTheme()
+  
   authStore.initializeAuth()
   backfillSuinsName()
   if (brandLongName) {
@@ -185,5 +204,80 @@ const logout = () => {
   height: 28px;
   width: auto;
   display: inline-block;
+}
+
+/* Animated Connect Wallet Button */
+.btn-connect-wallet {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.btn-connect-wallet:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+  background: linear-gradient(135deg, #7c8ff0 0%, #8b5fc0 100%);
+}
+
+.btn-connect-wallet:active {
+  transform: translateY(0);
+}
+
+.btn-connect-wallet i {
+  margin-right: 0.4rem;
+}
+
+/* Animated glow effect */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(102, 126, 234, 0.7), 0 0 15px rgba(118, 75, 162, 0.3);
+  }
+}
+
+/* Shimmer overlay effect */
+.btn-connect-wallet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Dark mode specific - slightly brighter for better contrast */
+[data-theme="dark"] .btn-connect-wallet {
+  background: linear-gradient(135deg, #7c8ff0 0%, #9b6fd0 100%);
+  box-shadow: 0 4px 20px rgba(124, 143, 240, 0.5);
+}
+
+[data-theme="dark"] .btn-connect-wallet:hover {
+  box-shadow: 0 6px 30px rgba(124, 143, 240, 0.7);
 }
 </style>

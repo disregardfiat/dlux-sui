@@ -1754,7 +1754,7 @@ function formatFundingSource(source: string): string {
 <style scoped>
 .account-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 /* ----- Profile hero (Twitter-style) ----- */
@@ -1768,7 +1768,7 @@ function formatFundingSource(source: string): string {
   width: 100%;
   background-size: cover;
   background-position: center;
-  background-color: #667eea;
+  background-color: var(--primary);
 }
 
 .profile-hero-banner-overlay {
@@ -1797,8 +1797,8 @@ function formatFundingSource(source: string): string {
   width: 128px;
   height: 128px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  background: #fff;
+  border: 4px solid var(--bg-card);
+  background: var(--bg-card);
   object-fit: cover;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
@@ -1807,7 +1807,7 @@ function formatFundingSource(source: string): string {
   position: absolute;
   bottom: 4px;
   right: 4px;
-  background: #667eea;
+  background: var(--primary);
   color: #fff;
   border-radius: 50%;
   width: 28px;
@@ -1815,7 +1815,7 @@ function formatFundingSource(source: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-card);
   font-size: 0.9rem;
 }
 
@@ -1828,19 +1828,19 @@ function formatFundingSource(source: string): string {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 0.15rem 0;
-  color: #0f1419;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
 .profile-hero-handle {
   font-size: 0.95rem;
-  color: #536471;
+  color: var(--text-secondary);
   margin: 0 0 0.5rem 0;
 }
 
 .profile-hero-bio {
   font-size: 0.95rem;
-  color: #0f1419;
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
   line-height: 1.4;
   white-space: pre-wrap;
@@ -1855,14 +1855,14 @@ function formatFundingSource(source: string): string {
 
 .profile-hero-meta-item {
   font-size: 0.9rem;
-  color: #536471;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 0.35rem;
 }
 
 .profile-hero-meta-item a {
-  color: #667eea;
+  color: var(--primary);
   text-decoration: none;
 }
 
@@ -1872,7 +1872,7 @@ function formatFundingSource(source: string): string {
 
 .profile-hero-pm-trust {
   font-size: 0.9rem;
-  color: #536471;
+  color: var(--text-secondary);
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
@@ -1880,11 +1880,11 @@ function formatFundingSource(source: string): string {
 }
 
 .profile-hero-pm-trust i {
-  color: #667eea;
+  color: var(--primary);
 }
 
 .profile-hero-pm-pct {
-  color: #0f1419;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -1901,7 +1901,7 @@ function formatFundingSource(source: string): string {
 
 .profile-hero-subscribers {
   font-size: 0.9rem;
-  color: #536471;
+  color: var(--text-secondary);
   margin-right: 0.5rem;
 }
 
@@ -1913,8 +1913,8 @@ function formatFundingSource(source: string): string {
 
 /* ----- Tabs ----- */
 .account-tabs-wrap {
-  background: #fff;
-  border-bottom: 1px solid #eff3f4;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-primary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -1939,7 +1939,7 @@ function formatFundingSource(source: string): string {
   padding: 1rem 1.25rem;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #536471;
+  color: var(--text-secondary);
   background: none;
   border: none;
   border-bottom: 3px solid transparent;
@@ -1949,13 +1949,13 @@ function formatFundingSource(source: string): string {
 }
 
 .account-tab:hover {
-  color: #0f1419;
-  background: rgba(15, 20, 25, 0.04);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .account-tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .account-tab-count {
@@ -2032,7 +2032,7 @@ function formatFundingSource(source: string): string {
 }
 
 .section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -2043,6 +2043,7 @@ function formatFundingSource(source: string): string {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .linked-accounts {
@@ -2056,18 +2057,18 @@ function formatFundingSource(source: string): string {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  background: #f9f9f9;
+  background: var(--bg-tertiary);
 }
 
 .account-icon {
   font-size: 2rem;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .verified-badge-small {
-  color: #28a745;
+  color: var(--safe-color);
   margin-left: auto;
 }
 
@@ -2078,10 +2079,10 @@ function formatFundingSource(source: string): string {
 }
 
 .dapp-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.5rem;
-  background: white;
+  background: var(--bg-card);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -2093,13 +2094,13 @@ function formatFundingSource(source: string): string {
 
 .dapp-card.dapp-muted {
   opacity: 0.6;
-  background: #f8f9fa;
-  border-color: #ffc107;
+  background: var(--bg-tertiary);
+  border-color: var(--status-warning-text);
 }
 
 .dapp-card.dapp-muted .dapp-header h3::after {
   content: ' (Paused)';
-  color: #ffc107;
+  color: var(--status-warning-text);
   font-size: 0.8em;
   font-weight: normal;
 }
@@ -2119,14 +2120,14 @@ function formatFundingSource(source: string): string {
 
 .dapp-version {
   font-size: 0.8rem;
-  color: #666;
-  background: #f0f0f0;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
 }
 
 .dapp-description {
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
@@ -2139,7 +2140,7 @@ function formatFundingSource(source: string): string {
 }
 
 .tag {
-  background: #667eea;
+  background: var(--primary);
   color: white;
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
@@ -2153,10 +2154,10 @@ function formatFundingSource(source: string): string {
 }
 
 .market-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.5rem;
-  background: #f9f9f9;
+  background: var(--bg-tertiary);
 }
 
 .market-header {
@@ -2168,7 +2169,7 @@ function formatFundingSource(source: string): string {
 
 .market-metric {
   font-weight: bold;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .market-status {
@@ -2179,18 +2180,18 @@ function formatFundingSource(source: string): string {
 }
 
 .status-green {
-  background: #d4edda;
-  color: #155724;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
 }
 
 .status-yellow {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
 }
 
 .status-red {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
 }
 
 .market-stats {
@@ -2213,10 +2214,10 @@ function formatFundingSource(source: string): string {
 }
 
 .social-card {
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 0.75rem;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .empty-state.compact {
@@ -2230,10 +2231,10 @@ function formatFundingSource(source: string): string {
 }
 
 .nft-card {
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-primary);
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .nft-image img {
@@ -2259,18 +2260,18 @@ function formatFundingSource(source: string): string {
 .stat strong {
   display: block;
   font-size: 1.2rem;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .empty-state {
   text-align: center;
   padding: 3rem;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .metadata-preview {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1rem;
   overflow: auto;
@@ -2287,8 +2288,8 @@ function formatFundingSource(source: string): string {
 
 /* Billing & Monetization Styles */
 .billing-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1rem;
@@ -2318,18 +2319,18 @@ function formatFundingSource(source: string): string {
 }
 
 .status-active {
-  background: #d4edda;
-  color: #155724;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
 }
 
 .status-inactive {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
 }
 
 .billing-detail, .billing-balance {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .billing-section-title {
@@ -2350,16 +2351,16 @@ function formatFundingSource(source: string): string {
 }
 
 .storage-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.5rem;
   transition: border-color 0.2s;
 }
 
 .storage-card.precarious {
-  border-color: #dc3545;
-  background: #fff5f5;
+  border-color: var(--status-danger-text);
+  background: var(--status-danger-bg);
 }
 
 .storage-header {
@@ -2381,27 +2382,12 @@ function formatFundingSource(source: string): string {
   font-weight: bold;
 }
 
-.status-green {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-yellow {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-red {
-  background: #f8d7da;
-  color: #721c24;
-}
-
 .storage-progress {
   margin-bottom: 1rem;
 }
 
 .progress-bar {
-  background: #e9ecef;
+  background: var(--progress-bg);
   height: 8px;
   border-radius: 4px;
   overflow: hidden;
@@ -2409,14 +2395,14 @@ function formatFundingSource(source: string): string {
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+  background: linear-gradient(90deg, var(--safe-color) 0%, var(--status-warning-text) 50%, var(--unsafe-color) 100%);
   height: 100%;
   transition: width 0.3s ease;
 }
 
 .progress-text {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .storage-details {
@@ -2432,7 +2418,7 @@ function formatFundingSource(source: string): string {
 }
 
 .detail-row span:first-child {
-  color: #666;
+  color: var(--text-muted);
 }
 
 .payout-cards {
@@ -2443,8 +2429,8 @@ function formatFundingSource(source: string): string {
 }
 
 .payout-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -2462,13 +2448,14 @@ function formatFundingSource(source: string): string {
 .payout-amount {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .payout-total {
   text-align: center;
   padding: 1rem;
-  background: #e7f3ff;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
   border-radius: 8px;
   margin-top: 1rem;
 }

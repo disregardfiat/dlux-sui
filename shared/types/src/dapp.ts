@@ -17,16 +17,24 @@ export interface DApp {
 export interface DAppManifest {
   entryPoint: string;
   assets: string[];
-  dependencies: string[];
-  permissions: DAppPermission[];
+  dependencies?: DAppPermission[];
+  permissions?: DAppPermission[];
   metadata: {
-    title: string;
-    description: string;
-    author: string;
-    version: string;
+    title?: string;
+    description?: string;
+    author?: string;
+    version?: string;
     license?: string;
     thumbnail?: string;
+    icon?: string;
+    releaseNote?: string;
+    [key: string]: unknown;
   };
+  videoUrl?: string;
+  audioUrl?: string;
+  streamUrl?: string;
+  streamType?: string;
+  pathMap?: Record<string, string>;
 }
 
 export type DAppCategory =

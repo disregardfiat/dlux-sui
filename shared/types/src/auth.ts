@@ -38,6 +38,7 @@ export interface ZKLink {
   provider: ZKProvider;
   proof: string;
   linkedAt: Date;
+  verified?: boolean;
 }
 
 export type ZKProvider = 'github' | 'gmail' | 'facebook';

@@ -1,4 +1,283 @@
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+/* ============================================
+   Theme System - CSS Custom Properties
+   Supports light/dark/system themes
+   
+   Best Practices:
+   - CSS variables for all colors (no hardcoded values in components)
+   - Bootstrap integration via data-theme attribute
+   - Native color-scheme support for OS integration
+   - Reduced motion support for accessibility
+   ============================================ */
+
+/* Light Theme (default) */
+:root,
+[data-theme="light"] {
+  /* Primary accent - brand color */
+  --primary: #667eea;
+  --primary-rgb: 102, 126, 234;
+  
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #f8f9fa;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-pre: #f8f9fa;
+  
+  /* Text */
+  --text-primary: #0f1419;
+  --text-secondary: #536471;
+  --text-muted: #666666;
+  --text-light: #888888;
+  --text-placeholder: #9ca3af;
+  --text-accent: #667eea;
+  --text-link: #667eea;
+  
+  /* Borders */
+  --border-primary: #e9ecef;
+  --border-secondary: #dee2e6;
+  --border-light: #e0e0e0;
+  --border-medium: #e5e7eb;
+  
+  /* Accent Colors */
+  --accent-primary: #667eea;
+  --accent-secondary: #764ba2;
+  --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  /* Status Colors */
+  --status-success-bg: #d4edda;
+  --status-success-text: #155724;
+  --status-warning-bg: #fff3cd;
+  --status-warning-text: #856404;
+  --status-danger-bg: #f8d7da;
+  --status-danger-text: #721c24;
+  --status-info-bg: #cce5ff;
+  --status-info-text: #004085;
+  
+  /* Badge Colors */
+  --badge-sfw-bg: #d1fae5;
+  --badge-sfw-text: #065f46;
+  --badge-payout-bg: #fef3c7;
+  --badge-payout-text: #92400e;
+  
+  /* Special */
+  --shadow-card: 0 8px 20px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  
+  /* Progress Bar */
+  --progress-bg: #e9ecef;
+  
+  /* Status indicator colors */
+  --safe-color: #10b981;
+  --unsafe-color: #ef4444;
+  
+  /* Navbar specific */
+  --navbar-bg: #ffffff;
+  --navbar-text: #212529;
+  --navbar-hover: rgba(0, 0, 0, 0.05);
+  
+  /* OS integration */
+  color-scheme: light;
 }
 
+/* Dark Theme */
+[data-theme="dark"] {
+  /* Primary accent - brand color */
+  --primary: #a5b6ff;
+  --primary-rgb: 165, 182, 255;
+  
+  /* Backgrounds */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-card: #161b22;
+  --bg-input: #0d1117;
+  --bg-pre: #21262d;
+  
+  /* Text */
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #8b949e;
+  --text-light: #6e7681;
+  --text-placeholder: #6e7681;
+  --text-accent: #a5b6ff;
+  --text-link: #a5b6ff;
+  
+  /* Borders */
+  --border-primary: #30363d;
+  --border-secondary: #21262d;
+  --border-light: #30363d;
+  --border-medium: #30363d;
+  
+  /* Accent Colors */
+  --accent-primary: #a5b6ff;
+  --accent-secondary: #c4b5fd;
+  --accent-gradient: linear-gradient(135deg, #a5b6ff 0%, #c4b5fd 100%);
+  
+  /* Status Colors - adjusted for dark bg */
+  --status-success-bg: #1a3d2e;
+  --status-success-text: #3fb950;
+  --status-warning-bg: #3d2e00;
+  --status-warning-text: #d29922;
+  --status-danger-bg: #3d1d1d;
+  --status-danger-text: #f85149;
+  --status-info-bg: #1a2d4a;
+  --status-info-text: #58a6ff;
+  
+  /* Badge Colors */
+  --badge-sfw-bg: #1a3d2e;
+  --badge-sfw-text: #3fb950;
+  --badge-payout-bg: #3d2e00;
+  --badge-payout-text: #d29922;
+  
+  /* Special */
+  --shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+  
+  /* Progress Bar */
+  --progress-bg: #30363d;
+  
+  /* Status indicator colors */
+  --safe-color: #3fb950;
+  --unsafe-color: #f85149;
+  
+  /* Navbar specific */
+  --navbar-bg: #21262d;
+  --navbar-text: rgba(255, 255, 255, 0.85);
+  --navbar-hover: rgba(255, 255, 255, 0.08);
+  
+  /* OS integration */
+  color-scheme: dark;
+}
+
+/* Base styles */
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  
+  /* OS color scheme integration */
+  color-scheme: light dark;
+}
+
+/* Theme transition - only for interactive elements, not all elements */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Override Bootstrap dark mode */
+[data-theme="dark"] {
+  --bs-body-bg: var(--bg-primary);
+  --bs-body-color: var(--text-primary);
+  --bs-border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .bg-light {
+  background-color: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+/* Theme-aware utility classes */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-card {
+  background-color: var(--bg-card);
+}
+
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.text-theme-muted {
+  color: var(--text-muted);
+}
+
+.border-theme {
+  border-color: var(--border-primary) !important;
+}
+
+.border-theme-secondary {
+  border-color: var(--border-secondary) !important;
+}
+
+/* Status badge classes */
+.status-badge-success {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.status-badge-warning {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.status-badge-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
+/* Safe/Unsafe indicators */
+.indicator-safe {
+  color: var(--safe-color);
+}
+
+.indicator-unsafe {
+  color: var(--unsafe-color);
+}
+
+/* Line clamp utilities (standard + webkit fallback) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-clamp: 2;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-clamp: 3;
+}

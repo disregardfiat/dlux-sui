@@ -137,7 +137,7 @@ export function useZKAdVerification() {
     contentId: string,
     proofResult: ZKProofResult,
     blockHeader: string
-  ): Promise<void> {
+  ): Promise<{ thresholdReached?: boolean }> {
     try {
       const response = await fetch(`${DGRAPH_SERVICE}/impressions`, {
         method: 'POST',

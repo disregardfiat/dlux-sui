@@ -130,7 +130,7 @@
             <div class="result-card-footer result-card-footer-pm">
               <span class="result-card-meta">Total Pool: {{ formatPool(market.totalPool) }} MIST</span>
               <span class="result-card-meta">{{ getBettorCount(market) }} {{ getBettorCount(market) === 1 ? 'bettor' : 'bettors' }}</span>
-              <span class="result-card-meta">Expires: {{ market.expiresAt?.slice(0, 10) || '—' }}</span>
+              <span class="result-card-meta">Expires: {{ market.expiresAt ? formatDate(market.expiresAt) : '—' }}</span>
               <a 
                 v-if="market.id && market.id.startsWith('0x')" 
                 :href="buildExplorerObjectUrl(market.id)" 
@@ -237,6 +237,7 @@ type HubResult = {
   description: string;
   owner?: string;
   ownerSuinsName?: string;
+  ownerAvatar?: string | null;
   sfw?: boolean;
   subdomain?: string;
   permlink?: string;
@@ -281,13 +282,27 @@ type UserBet = {
   side: 'safe' | 'unsafe';
   amount: number;
   dappId?: string;
-  placedAt?: string;
+  placedAt?: string | Date;
 };
 const userBets = ref<UserBet[]>([]);
 
 function formatMetric(metric: string): string {
   if (!metric || metric === '—') return metric || '—';
   return metric.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function formatDate(date: Date | string | undefined | null): string {
+  if (!date) return '—';
+  let d: Date;
+  if (typeof date === 'string') {
+    d = new Date(date);
+  } else if (date instanceof Date) {
+    d = date;
+  } else {
+    return '—';
+  }
+  if (isNaN(d.getTime())) return '—';
+  return d.toISOString().slice(0, 10);
 }
 
 // Convert MIST to SUI (1 SUI = 1,000,000,000 MIST)
@@ -536,24 +551,24 @@ watch([query, activeFilter], () => {
 
 /* Hero */
 .hero {
-  background: linear-gradient(145deg, #f0f4ff 0%, #e8eeff 50%, #f5f2ff 100%);
+  background: linear-gradient(145deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
   padding: 2.5rem 2rem;
   border-radius: 16px;
   margin-bottom: 1.75rem;
-  border: 1px solid rgba(102, 126, 234, 0.12);
+  border: 1px solid var(--border-primary);
 }
 
 .hero-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1a1d24;
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
   font-size: 1rem;
-  color: #5c6370;
+  color: var(--text-secondary);
   margin: 0 0 1.5rem 0;
   max-width: 36rem;
 }
@@ -593,7 +608,7 @@ watch([query, activeFilter], () => {
   display: block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #5c6370;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 0.35rem;
@@ -603,20 +618,21 @@ watch([query, activeFilter], () => {
   width: 100%;
   padding: 0.65rem 1rem;
   font-size: 1rem;
-  border: 1px solid #e0e4eb;
+  border: 1px solid var(--border-primary);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-input);
+  color: var(--text-primary);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-placeholder);
 }
 
 .filter-tabs {
@@ -624,7 +640,7 @@ watch([query, activeFilter], () => {
   flex-wrap: wrap;
   gap: 0.25rem;
   padding: 0.25rem;
-  background: #f1f3f5;
+  background: var(--bg-tertiary);
   border-radius: 10px;
 }
 
@@ -632,7 +648,7 @@ watch([query, activeFilter], () => {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #5c6370;
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -641,13 +657,13 @@ watch([query, activeFilter], () => {
 }
 
 .filter-tab:hover {
-  color: #1a1d24;
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-card);
 }
 
 .filter-tab.active {
-  color: #1a1d24;
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-card);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -668,13 +684,13 @@ watch([query, activeFilter], () => {
 .results-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1a1d24;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .results-count {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .result-grid {
@@ -684,10 +700,10 @@ watch([query, activeFilter], () => {
 }
 
 .result-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 1.25rem;
-  background: #fff;
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -695,7 +711,7 @@ watch([query, activeFilter], () => {
 }
 
 .result-card:hover {
-  border-color: #d1d5db;
+  border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
@@ -706,8 +722,8 @@ watch([query, activeFilter], () => {
 }
 
 .badge-type, .badge-pm {
-  background: #f1f3f5;
-  color: #374151;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -716,8 +732,8 @@ watch([query, activeFilter], () => {
 }
 
 .badge-sfw {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--badge-sfw-bg);
+  color: var(--badge-sfw-text);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
@@ -725,8 +741,8 @@ watch([query, activeFilter], () => {
 }
 
 .badge-payout {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--badge-payout-bg);
+  color: var(--badge-payout-text);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
@@ -736,20 +752,21 @@ watch([query, activeFilter], () => {
 .result-card-title {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #1a1d24;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.35;
 }
 
 .result-card-desc {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-clamp: 2;
 }
 
 .result-card-footer {
@@ -760,7 +777,7 @@ watch([query, activeFilter], () => {
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 0.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border-primary);
 }
 
 .result-card-footer-pm {
@@ -771,13 +788,13 @@ watch([query, activeFilter], () => {
 
 .result-card-meta {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .result-card-link {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #667eea;
+  color: var(--primary);
   text-decoration: none;
 }
 
@@ -795,14 +812,14 @@ watch([query, activeFilter], () => {
 .empty-state {
   text-align: center;
   padding: 3rem 1.5rem;
-  background: #fafbfc;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  border: 1px dashed #e5e7eb;
+  border: 1px dashed var(--border-primary);
 }
 
 .empty-state-icon {
   font-size: 2.5rem;
-  color: #d1d5db;
+  color: var(--text-light);
   margin-bottom: 0.75rem;
   display: block;
 }
@@ -810,19 +827,19 @@ watch([query, activeFilter], () => {
 .empty-state-text {
   font-size: 1rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   margin: 0 0 0.25rem 0;
 }
 
 .empty-state-hint {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .user-positions {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 1px solid #bbf7d0;
+  background: var(--status-success-bg);
+  border: 1px solid var(--status-success-text);
   border-radius: 12px;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
@@ -835,18 +852,18 @@ watch([query, activeFilter], () => {
 }
 
 .position-card {
-  background: #fff;
-  border: 1px solid #d1fae5;
+  background: var(--bg-card);
+  border: 1px solid var(--status-success-bg);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   border-left: 4px solid;
 }
 
 .position-safe {
-  border-left-color: #10b981;
+  border-left-color: var(--safe-color);
 }
 
 .position-unsafe {
-  border-left-color: #ef4444;
+  border-left-color: var(--unsafe-color);
 }
 </style>

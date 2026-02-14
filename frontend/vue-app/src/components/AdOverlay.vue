@@ -248,12 +248,12 @@ watch(
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .ad-creative {
   cursor: pointer;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1rem;
@@ -282,7 +282,7 @@ watch(
 
 .ad-description {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
 
