@@ -50,7 +50,7 @@ router.get('/dapp/:dappId', async (req, res) => {
           id dappId status resolution totalPool safePool unsafePool expiresAt
         }
         resolved(func: type(PredictionMarket)) @filter(eq(dappId, $dappId) AND eq(status, "resolved")) {
-          id resolution totalPool safePool unsafePool
+          id resolution totalPool safePool unsafePool postingFeeContribution safetyMetric triggeredByAddress
         }
       }
     `;

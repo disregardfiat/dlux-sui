@@ -46,7 +46,7 @@ router.get('/fees/:dappId', async (req, res) => {
     const { dappId } = req.params;
     const query = `
       query allMarkets($dappId: string) {
-        markets(func: eq(dgraph_type, "PredictionMarket")) @filter(eq(dappId, $dappId)) {
+        markets(func: type(PredictionMarket)) @filter(eq(dappId, $dappId)) {
           postingFeeContribution
         }
       }
@@ -108,7 +108,7 @@ router.get('/dapp/:dappId/resolved', async (req, res) => {
     const { dappId } = req.params;
     const query = `
       query resolvedMarkets($dappId: string) {
-        markets(func: eq(dgraph_type, "PredictionMarket")) @filter(
+        markets(func: type(PredictionMarket)) @filter(
           eq(dappId, $dappId) AND eq(status, "resolved")
         ) {
           id dappId safetyMetric description status resolution

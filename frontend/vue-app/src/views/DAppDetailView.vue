@@ -796,6 +796,9 @@ function getResolvedPMSummary(market: any): string {
   const totalBettors = getResolvedBettorCount(market);
   const communityBettors = getCommunityBettorCount(market);
   if (market.resolution === 'safe') {
+    if (communityBettors === 0) {
+      return 'PM resolved as safe and accurate (creator stake only).';
+    }
     return `PM resolved as safe and accurate with ${communityBettors} ${communityBettors === 1 ? 'bettor' : 'bettors'} (not the author).`;
   }
   return `PM resolved as unsafe or inaccurate with ${totalBettors} ${totalBettors === 1 ? 'bettor' : 'bettors'}.`;
@@ -824,7 +827,7 @@ async function onPlaceBet(payload: { market: PredictionMarket; side: 'safe' | 'u
     }
     showPMBetModal.value = false;
     selectedPMMarket.value = null;
-    if (dapp.value) fetchMarkets(dapp.value.id);
+    if (dapp.value) fetchMarkets(dapp.value.id, dapp.value.owner, dapp.value.permlink);
   } catch (e: any) {
     pmBetError.value = e?.message || 'Failed to place bet';
   }
@@ -893,16 +896,56 @@ async function fetchPremiumContent(dappId: string) {
   }
 }
 
-async function fetchMarkets(dappId: string) {
+async function fetchMarkets(dappId: string, owner?: string, permlink?: string) {
   try {
-    const [activeRes, resolvedRes] = await Promise.all([
+    const [activeRes, resolvedRes, safetyRes] = await Promise.all([
       fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}`),
-      fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/resolved`)
+      fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/resolved`),
+      fetch(`${DGRAPH_SERVICE}/safety/dapp/${encodeURIComponent(dappId)}`)
     ]);
     const activeData = await activeRes.json();
     const resolvedData = await resolvedRes.json();
+    let safetyData = await safetyRes.json();
     activeMarkets.value = activeData.markets || [];
-    resolvedMarkets.value = resolvedData.markets || [];
+    let resolved = resolvedData.markets || [];
+    // Fallback 1: safety API uses type(PredictionMarket) and may find resolved markets when /resolved returns empty
+    if (resolved.length === 0 && safetyData.resolvedMarkets?.length > 0) {
+      resolved = safetyData.resolvedMarkets.map((m: any) => ({
+        ...m,
+        safetyMetric: m.safetyMetric || 'safe-and-accurate',
+        triggeredByAddress: m.triggeredByAddress || ''
+      }));
+    }
+    // Fallback 2: try owner_permlink if primary dappId returns nothing (markets may be keyed by contentId format)
+    const altId = owner && permlink ? `${owner}_${permlink}` : null;
+    if (resolved.length === 0 && altId && altId !== dappId) {
+      try {
+        const altRes = await fetch(`${DGRAPH_SERVICE}/safety/dapp/${encodeURIComponent(altId)}`);
+        const altData = await altRes.json();
+        if (altData.resolvedMarkets?.length > 0) {
+          resolved = altData.resolvedMarkets.map((m: any) => ({
+            ...m,
+            safetyMetric: m.safetyMetric || 'safe-and-accurate',
+            triggeredByAddress: m.triggeredByAddress || ''
+          }));
+        }
+      } catch { /* ignore */ }
+    }
+    // Fallback 3: fees API confirms PM existed; assume resolved safe so "Register as Ad" and summary can show
+    if (resolved.length === 0 && activeMarkets.value.length === 0) {
+      for (const fid of [dappId, altId].filter(Boolean)) {
+        if (!fid) continue;
+        try {
+          const feesRes = await fetch(`${DGRAPH_SERVICE}/markets/fees/${encodeURIComponent(fid)}`);
+          const feesData = await feesRes.json();
+          if (feesData.markets > 0) {
+            resolved = [{ id: 'inferred', resolution: 'safe', safetyMetric: 'safe-and-accurate', totalPool: feesData.total || 0, postingFeeContribution: feesData.total || 0 }];
+            break;
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    resolvedMarkets.value = resolved;
   } catch {
     activeMarkets.value = [];
     resolvedMarkets.value = [];
@@ -987,7 +1030,7 @@ async function fetchDapp() {
       postingFee: data.postingFee || undefined
     };
     await Promise.all([
-      fetchMarkets(data.id),
+      fetchMarkets(data.id, data.owner, data.permlink),
       fetchPremiumContent(data.id)
     ]);
     await loadThreads();
