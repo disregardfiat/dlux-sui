@@ -1,6 +1,6 @@
 # Test Environment
 
-**CD:** Pushes to the `main` branch trigger continuous deployment to **test.dlux.io** (GitHub webhook → webhook service → deploy script). See [webhook-setup.md](./webhook-setup.md) and [webhook-status.md](./webhook-status.md).
+**CD:** Pushes to the `main` branch trigger deployment to **test.dlux.io** only (GitHub webhook → webhook service → `deploy-server.sh`). **dlux.io** (production) is updated only when you run `scripts/promote-test-to-prod.sh` after E2E tests pass. See [webhook-setup.md](./webhook-setup.md) and [Promoting test to production](./webhook-setup.md#promoting-test-to-production).
 
 ## Server Configuration
 
@@ -168,9 +168,9 @@ Example: `https://h1a2b3c4d5e6f7890...walrus.dlux.io/@0x1a2b3c4d.../mygame`. Ass
 
 ## Troubleshooting
 
-### Deploy not reflecting on dlux.io / test.dlux.io
+### Deploy not reflecting on test.dlux.io
 
-Both domains are served by the same PM2 process (`vue-frontend` on port 3006). If you pushed and ran deploy but the site still shows old content:
+**test.dlux.io** is served by `vue-frontend` (port 3006) and is updated on every webhook deploy. **dlux.io** is served by `vue-frontend-prod` (port 3007) and is updated only when you run `scripts/promote-test-to-prod.sh`. If you pushed and ran deploy but test.dlux.io still shows old content:
 
 1. **Confirm the server has the latest commit**
    ```bash
@@ -249,7 +249,8 @@ Caddy (Port 80/443)
 │  sui.dlux.io → localhost:3001         │
 │  gql.dlux.io → localhost:3003         │
 │  walrus.dlux.io → localhost:3002      │
-│  test.dlux.io → localhost:3006        │
+│  test.dlux.io → localhost:3006 (test frontend)   │
+│  dlux.io → localhost:3007 (prod frontend)       │
 │  webhook.dlux.io → localhost:3011     │
 └─────────────────────────────────────┘
    ↓

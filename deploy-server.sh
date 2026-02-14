@@ -88,7 +88,7 @@ if [ -d "$REPO_DIR/shared/types" ]; then
     fi
 fi
 
-# Build frontend on every deploy (runs on push via webhook) — required for vue-frontend PM2 on port 3006
+# Build frontend on every deploy (runs on push via webhook) — deploys to test.dlux.io only (vue-frontend port 3006). Use scripts/promote-test-to-prod.sh to push to dlux.io.
 # Use test.dlux.io backends so Hub/detail page and post flow call sui/gql/walrus.dlux.io
 export VITE_SUI_SERVICE_URL="${VITE_SUI_SERVICE_URL:-https://sui.dlux.io}"
 export VITE_DGRAPH_SERVICE_URL="${VITE_DGRAPH_SERVICE_URL:-https://gql.dlux.io}"

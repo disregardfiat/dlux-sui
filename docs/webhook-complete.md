@@ -6,7 +6,7 @@
    - Service code at `services/webhook-service/`
    - Handles GitHub webhook events
    - Verifies webhook signatures for security
-   - Automatically deploys on push to main branch
+   - Automatically deploys to **test.dlux.io** on push to main (dlux.io is updated only via `scripts/promote-test-to-prod.sh`)
 
 2. ✅ **Caddy Configuration Updated**
    - Added `webhook.dlux.io` routing to `localhost:3011`

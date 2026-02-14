@@ -2,7 +2,7 @@
 
 ## Overview
 
-The webhook service receives GitHub webhooks and automatically deploys changes to the test server.
+The webhook service receives GitHub webhooks and automatically deploys changes to **test.dlux.io** only. Every push to `main` triggers a full build and deploy to test.dlux.io (frontend on port 3006). Production (**dlux.io**, port 3007) is updated only when you run the promote script after E2E tests pass—see [Promoting test to production](#promoting-test-to-production).
 
 ## Server Setup
 
@@ -92,9 +92,19 @@ Should return:
 4. Webhook service:
    - Verifies signature using `GITHUB_WEBHOOK_SECRET`
    - Checks if push is to `main` branch
-   - Pulls latest changes from Git
-   - Executes `deploy.sh` script
-   - Script installs dependencies, builds services, and restarts PM2
+   - Runs `deploy-server.sh`, which pulls, builds, and restarts services
+   - **Only test.dlux.io** (vue-frontend on port 3006) is updated; **dlux.io** (vue-frontend-prod on port 3007) is left unchanged until you run the promote script
+
+## Promoting test to production
+
+After E2E tests pass on **test.dlux.io**, promote that build to **dlux.io**:
+
+```bash
+# On the server (from repo root)
+cd ~/dlux-sui && bash scripts/promote-test-to-prod.sh
+```
+
+This copies the test frontend build (`dist`) to the production build (`dist-prod`) and restarts `vue-frontend-prod`. No rebuild is performed—dlux.io serves the same assets that were validated on test.dlux.io.
 
 ## Security
 

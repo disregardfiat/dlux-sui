@@ -233,7 +233,7 @@ npm run docker:up
 
 # Services available on:
 # - Frontend (dev / Vite): http://localhost:3000
-# - Frontend (server / PM2 on test box): http://localhost:3006
+# - Frontend test (server): http://localhost:3006 (test.dlux.io); prod: http://localhost:3007 (dlux.io, updated via scripts/promote-test-to-prod.sh)
 # - Dgraph: http://localhost:3003/graphql
 # - SUI Service: http://localhost:3001
 # - Walrus: http://localhost:3002
