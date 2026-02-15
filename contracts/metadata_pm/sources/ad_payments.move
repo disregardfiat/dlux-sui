@@ -36,6 +36,7 @@ const E_INVALID_PM_STATUS: u64 = 17;
 const E_PROOF_REPLAY: u64 = 18;
 const E_BUNDLE_OUT_OF_BOUNDS: u64 = 19;
 const E_SPLITS_MUST_SUM_TO_100: u64 = 20;
+const E_TREASURY_NOT_CONFIGURED: u64 = 21;
 
 /// Campaign Escrow - holds funds for ad campaign
 public struct CampaignEscrow has key {
@@ -408,19 +409,18 @@ public fun finalize_escrow(
 }
 
 /// Entry function: Distribute revenue from pool using GovernanceConfig splits.
+/// Treasury addresses (foundation, pm_pool) come from gov; no per-call redirect risk.
 /// pm_status: 0 = active, 1 = passed.  Status 2 (failed) aborts — ads are disabled.
 public entry fun distribute_revenue_entry(
     pool: &mut RevenuePool,
     gov: &GovernanceConfig,
     amount: u64,
     pm_status: u8,
-    foundation: address,
-    pm_pool: address,
     clock: &Clock,
     admin: &AdminCap,
     ctx: &mut TxContext
 ) {
-    distribute_revenue(pool, gov, amount, pm_status, foundation, pm_pool, clock, admin, ctx);
+    distribute_revenue(pool, gov, amount, pm_status, clock, admin, ctx);
 }
 
 /// Distribute revenue from pool.
@@ -429,14 +429,12 @@ public entry fun distribute_revenue_entry(
 /// After PM success (1):  foundation / gateway(→pool.creator) / creator / 0
 /// After PM failure (2):  abort — ads disabled.
 ///
-/// Reads split percentages from GovernanceConfig.
+/// Reads split percentages and treasury addresses from GovernanceConfig.
 public fun distribute_revenue(
     pool: &mut RevenuePool,
     gov: &GovernanceConfig,
     amount: u64,
     pm_status: u8,
-    foundation: address,
-    pm_pool: address,
     clock: &Clock,
     _admin: &AdminCap,
     ctx: &mut TxContext
@@ -458,6 +456,11 @@ public fun distribute_revenue(
          governance::get_post_pm_pct(gov))
     };
     assert!(f_pct + g_pct + c_pct + p_pct == 100, E_SPLITS_MUST_SUM_TO_100);
+
+    let foundation = governance::get_foundation_address(gov);
+    let pm_pool = governance::get_pm_pool_address(gov);
+    assert!(foundation != @0x0, E_TREASURY_NOT_CONFIGURED);
+    assert!(pm_pool != @0x0 || p_pct == 0, E_TREASURY_NOT_CONFIGURED);
 
     let foundation_share = amount * f_pct / 100;
     let creator_share = amount * c_pct / 100;
@@ -490,8 +493,7 @@ public fun distribute_revenue(
 /// Entry function: Walrus node drawdown from revenue pool (governance-aware).
 ///
 /// pm_status: 0 = PM active, 1 = PM passed, 2 = PM failed (aborts).
-/// During PM (0):  foundation 10 %, gateway 9 %, creator escrow 41 %, PM pool 40 %
-/// After pass (1): foundation 10 %, gateway 9 %, creator 81 %, PM pool 0 %
+/// Treasury addresses (foundation, pm_pool) come from gov; no per-call redirect risk.
 public entry fun walrus_drawdown_entry(
     pool: &mut RevenuePool,
     gov: &GovernanceConfig,
@@ -504,9 +506,7 @@ public entry fun walrus_drawdown_entry(
     leaf_count: u64,
     threshold: u64,
     pm_status: u8,
-    pm_pool: address,
     creator: address,
-    foundation: address,
     walrus_provider: address,
     amount: u64,
     clock: &Clock,
@@ -517,7 +517,7 @@ public entry fun walrus_drawdown_entry(
         pool, gov, creator_escrow,
         proof_hashes, proof_paths, proof_indices,
         content_id, root_hash, leaf_count, threshold,
-        pm_status, pm_pool, creator, foundation, walrus_provider,
+        pm_status, creator, walrus_provider,
         amount, clock, admin, ctx,
     );
 }
@@ -545,9 +545,7 @@ public fun walrus_drawdown(
     leaf_count: u64,
     threshold: u64,
     pm_status: u8,
-    pm_pool: address,
     creator: address,
-    foundation: address,
     walrus_provider: address,
     amount: u64,
     clock: &Clock,
@@ -591,6 +589,11 @@ public fun walrus_drawdown(
          governance::get_post_pm_pct(gov))
     };
     assert!(f_pct + g_pct + c_pct + p_pct == 100, E_SPLITS_MUST_SUM_TO_100);
+
+    let foundation = governance::get_foundation_address(gov);
+    let pm_pool = governance::get_pm_pool_address(gov);
+    assert!(foundation != @0x0, E_TREASURY_NOT_CONFIGURED);
+    assert!(pm_pool != @0x0 || p_pct == 0, E_TREASURY_NOT_CONFIGURED);
 
     let foundation_share = amount * f_pct / 100;
     let creator_share    = amount * c_pct / 100;

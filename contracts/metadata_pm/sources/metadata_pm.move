@@ -102,6 +102,7 @@ const E_TOO_FEW_PROOFS: u64 = 16;
 const E_INPUT_TOO_LONG: u64 = 17;
 const E_PM_FAILED_ADS_DISABLED: u64 = 18;
 const E_INVALID_PM_STATUS: u64 = 19;
+const E_TREASURY_NOT_CONFIGURED: u64 = 20;
 const MAX_CONTENT_ID_LEN: u64 = 64;
 const MAX_BATCH_PROOFS: u64 = 100;
 const MAX_MERKLE_PATH_DEPTH: u64 = 40;
@@ -195,7 +196,8 @@ public fun unpause_pool(pool: &mut AdRevenuePool, ctx: &mut TxContext) {
 
 /// Distribute revenue when threshold reached.  Requires pool's Merkle root to be set and
 /// real batch Merkle verification via proof_hashes/paths/indices.  Admin-only; pool must
-/// not be paused.  Split percentages come from GovernanceConfig.
+/// not be paused.  Split percentages and treasury addresses come from GovernanceConfig
+/// (foundation/pm_pool set via set_treasury_addresses; no per-call redirect risk).
 ///
 /// pm_status: 0 = active, 1 = passed, 2 = failed (aborts — ads disabled).
 /// Creator share always goes to pool.creator (no redirect).
@@ -206,8 +208,6 @@ public fun distribute_ad_revenue(
     proof_paths: vector<vector<vector<u8>>>,
     proof_indices: vector<vector<u8>>,
     pm_status: u8,
-    foundation: address,
-    pm_pool: address,
     _admin: &AdminCap,
     ctx: &mut TxContext
 ) {
@@ -251,6 +251,11 @@ public fun distribute_ad_revenue(
     let pm_share = available_balance * p_pct / 100;
     // Gateway share absorbs rounding dust (sent to pool.creator for now)
     let gateway_share = available_balance - foundation_share - creator_share - pm_share;
+
+    let foundation = governance::get_foundation_address(gov);
+    let pm_pool = governance::get_pm_pool_address(gov);
+    assert!(foundation != @0x0, E_TREASURY_NOT_CONFIGURED);
+    assert!(pm_pool != @0x0 || pm_share == 0, E_TREASURY_NOT_CONFIGURED);
 
     let creator_balance = balance::split(&mut pool.balance, creator_share);
     let foundation_balance = balance::split(&mut pool.balance, foundation_share);

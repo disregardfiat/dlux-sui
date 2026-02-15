@@ -201,7 +201,7 @@ fun test_walrus_drawdown_pm_active() {
             root_hash,
             2, 1,
             0, // pm_status = active
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             drawdown_amount,
             &clock,
             &admin_cap,
@@ -262,7 +262,7 @@ fun test_walrus_drawdown_pm_passed() {
             root_hash,
             2, 1,
             1, // pm_status = passed
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64,
             &clock,
             &admin_cap,
@@ -321,7 +321,7 @@ fun test_walrus_drawdown_pm_failed_aborts() {
             b"root",
             2, 1,
             2, // pm_status = failed => ABORT
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64,
             &clock,
             &admin_cap,
@@ -373,7 +373,7 @@ fun test_walrus_drawdown_insufficient_funds() {
             root_hash,
             2, 1,
             1,
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64, // 100 SUI > 50 SUI available
             &clock,
             &admin_cap,
@@ -424,7 +424,7 @@ fun test_walrus_drawdown_zero_amount() {
             root_hash,
             2, 1,
             1,
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             0, // zero amount
             &clock,
             &admin_cap,
@@ -471,7 +471,7 @@ fun test_walrus_drawdown_empty_proofs() {
             b"root",
             2, 1,
             1,
-            PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64,
             &clock,
             &admin_cap,
@@ -517,7 +517,7 @@ fun test_resolve_escrow_success() {
             &mut pool, &gov, &mut creator_escrow,
             proof_hashes, proof_paths, proof_indices,
             b"content_esc", root_hash, 2, 1,
-            0, PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            0, CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64,
             &clock, &admin_cap, ctx
         );
@@ -569,7 +569,7 @@ fun test_resolve_escrow_failure() {
             &mut pool, &gov, &mut creator_escrow,
             proof_hashes, proof_paths, proof_indices,
             b"content_fail", root_hash, 2, 1,
-            0, PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
+            0, CREATOR, WALRUS_PROVIDER,
             100_000_000_000u64,
             &clock, &admin_cap, ctx
         );

@@ -67,6 +67,9 @@ public struct GovernanceConfig has key {
     // ── Walrus bundle bounds (anti-spam: enforce proof count per drawdown) ──
     min_walrus_bundle: u64,    // Min proofs per drawdown (default 64)
     max_walrus_bundle: u64,    // Max proofs per drawdown (default 128)
+    // ── Treasury addresses (set via set_treasury_addresses; not votable) ──
+    foundation_address: address,
+    pm_pool_address: address,
     last_updated_ms: u64,
 }
 
@@ -156,6 +159,8 @@ fun init(ctx: &mut TxContext) {
         quorum_pct: 51,
         min_walrus_bundle: 64,
         max_walrus_bundle: 128,
+        foundation_address: @0x0,
+        pm_pool_address: @0x0,
         last_updated_ms: 0,
     };
     transfer::share_object(config);
@@ -180,6 +185,22 @@ public fun get_proposal_duration(config: &GovernanceConfig): u64 { config.propos
 public fun get_quorum_pct(config: &GovernanceConfig): u64 { config.quorum_pct }
 public fun get_min_walrus_bundle(config: &GovernanceConfig): u64 { config.min_walrus_bundle }
 public fun get_max_walrus_bundle(config: &GovernanceConfig): u64 { config.max_walrus_bundle }
+public fun get_foundation_address(config: &GovernanceConfig): address { config.foundation_address }
+public fun get_pm_pool_address(config: &GovernanceConfig): address { config.pm_pool_address }
+
+// ───── Treasury config (admin only; not votable) ─────
+
+/// Set foundation and PM pool addresses. Must be called after init before any distribution.
+/// Prevents admin redirect: distribute_ad_revenue uses these instead of per-call params.
+public fun set_treasury_addresses(
+    config: &mut GovernanceConfig,
+    foundation: address,
+    pm_pool: address,
+    _admin: &GovernanceAdminCap,
+) {
+    config.foundation_address = foundation;
+    config.pm_pool_address = pm_pool;
+}
 
 // ───── Proposal lifecycle ─────
 
@@ -404,6 +425,8 @@ public fun create_governance_config_for_walrus_testing(ctx: &mut TxContext): Gov
         quorum_pct: 51,
         min_walrus_bundle: 1,
         max_walrus_bundle: 128,
+        foundation_address: @0xFF,
+        pm_pool_address: @0xDD,
         last_updated_ms: 0,
     }
 }
@@ -426,6 +449,8 @@ public fun create_governance_config_for_testing(ctx: &mut TxContext): Governance
         quorum_pct: 51,
         min_walrus_bundle: 64,
         max_walrus_bundle: 128,
+        foundation_address: @0xFF,
+        pm_pool_address: @0xDD,
         last_updated_ms: 0,
     }
 }
@@ -437,7 +462,9 @@ public fun destroy_governance_config_for_testing(config: GovernanceConfig) {
         pm_duration_ms: _, votable_posting_fee: _,
         pm_foundation_pct: _, pm_gateway_pct: _, pm_creator_pct: _, pm_pool_pct: _,
         post_foundation_pct: _, post_gateway_pct: _, post_creator_pct: _, post_pm_pct: _,
-        proposal_duration_ms: _, quorum_pct: _, min_walrus_bundle: _, max_walrus_bundle: _, last_updated_ms: _,
+        proposal_duration_ms: _, quorum_pct: _, min_walrus_bundle: _, max_walrus_bundle: _,
+        foundation_address: _, pm_pool_address: _,
+        last_updated_ms: _,
     } = config;
     object::delete(id);
 }

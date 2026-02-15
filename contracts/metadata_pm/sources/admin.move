@@ -18,12 +18,12 @@ const E_INVALID_FEE_PCT: u64 = 4;
 
 // ───── Structs ─────
 
-/// Holds admin set, threshold (e.g. 3-of-5), fee config, and collected override fees.
+/// Holds admin set, fee config, and collected override fees.
 /// Used for moderation: admins can force-resolve markets to NO (veto power only).
+/// Any single admin with AdminOverrideCap can override; threshold reserved for future multi-admin quorum.
 public struct AdminSet has key {
     id: UID,
     admins: Table<address, bool>,
-    threshold: u64,
     fee_pct: u64,
     fee_balance: Balance<SUI>,
     governance_config_id: ID,
@@ -60,7 +60,6 @@ public struct AdminRemoved has copy, drop {
 /// Create AdminSet (called from init or governance). Not in init by default to allow
 /// governance to configure governance_config_id first.
 public fun create_admin_set(
-    threshold: u64,
     fee_pct: u64,
     governance_config_id: ID,
     ctx: &mut TxContext,
@@ -69,7 +68,6 @@ public fun create_admin_set(
     AdminSet {
         id: object::new(ctx),
         admins: table::new(ctx),
-        threshold,
         fee_pct,
         fee_balance: balance::zero(),
         governance_config_id,

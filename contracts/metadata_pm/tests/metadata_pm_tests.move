@@ -167,8 +167,6 @@ fun test_distribute_revenue_pm_active() {
                 proof_paths,
                 proof_indices,
                 0, // pm_status = active
-                FOUNDATION,
-                PM_POOL,
                 &admin_cap,
                 ctx
             );
@@ -208,8 +206,6 @@ fun test_distribute_revenue_pm_passed() {
                 proof_paths,
                 proof_indices,
                 1, // pm_status = passed
-                FOUNDATION,
-                PM_POOL,
                 &admin_cap,
                 ctx
             );
@@ -249,8 +245,6 @@ fun test_distribute_revenue_pm_failed_aborts() {
                 proof_paths,
                 proof_indices,
                 2, // pm_status = failed => ABORT
-                FOUNDATION,
-                PM_POOL,
                 &admin_cap,
                 ctx
             );
@@ -283,8 +277,6 @@ fun test_distribute_revenue_no_merkle_root_set() {
                 vector[vector[b"y"]],
                 vector[vector[0u8]],
                 0,
-                FOUNDATION,
-                PM_POOL,
                 &admin_cap,
                 ctx
             );
@@ -319,7 +311,7 @@ fun test_distribute_revenue_already_distributed() {
             distribute_ad_revenue(
                 &mut pool, &gov,
                 proof_hashes, proof_paths, proof_indices,
-                1, FOUNDATION, PM_POOL, &admin_cap, ctx
+                1, &admin_cap, ctx
             );
             // Second call should abort
             let leaf0 = b"L0";
@@ -329,7 +321,7 @@ fun test_distribute_revenue_already_distributed() {
             distribute_ad_revenue(
                 &mut pool, &gov,
                 vector[leaf0], vector[vector[right]], vector[vector[0u8]],
-                1, FOUNDATION, PM_POOL, &admin_cap, ctx
+                1, &admin_cap, ctx
             );
             destroy_revenue_pool_for_testing(pool, ctx);
             destroy_governance_config_for_testing(gov);
