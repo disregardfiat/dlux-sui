@@ -5,7 +5,6 @@ import { apolloClient } from './apollo/client'
 import router from './router'
 import App from './App.vue'
 import './style.css'
-
 // Initialize theme before mounting app to prevent flash
 function initTheme() {
   const STORAGE_KEY = 'dlux-theme'

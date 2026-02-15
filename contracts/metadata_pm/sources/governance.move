@@ -31,6 +31,7 @@ const E_INVALID_SPLIT_COUNT: u64 = 10;
 const E_TOO_MANY_PROOFS: u64 = 11;
 const E_TREASURIES_ALREADY_CONFIGURED: u64 = 12;
 const E_INVALID_TREASURY_ENCODING: u64 = 13;
+const E_ALREADY_BOOTSTRAPPED: u64 = 14;
 
 // ───── Limits ─────
 
@@ -196,6 +197,21 @@ public fun get_foundation_address(config: &GovernanceConfig): address { config.f
 public fun get_pm_pool_address(config: &GovernanceConfig): address { config.pm_pool_address }
 
 // ───── Treasury config (admin only; not votable) ─────
+
+/// ONE-TIME: Apply testnet-friendly overrides for faster testing.
+/// pm_duration 1 min, proposal_duration 1 min, min_walrus_bundle 1, posting fee 0.1 SUI.
+/// ONLY call on testnet deployment. Fails if pm_duration_ms has already been changed from default.
+public fun bootstrap_testnet(
+    config: &mut GovernanceConfig,
+    _admin: &GovernanceAdminCap,
+) {
+    assert!(config.pm_duration_ms == 259_200_000, E_ALREADY_BOOTSTRAPPED);
+    config.pm_duration_ms = 60_000;           // 1 minute
+    config.proposal_duration_ms = 60_000;     // 1 minute
+    config.min_walrus_bundle = 1;
+    config.max_walrus_bundle = 128;
+    config.votable_posting_fee = 100_000_000; // 0.1 SUI (cheaper for testing)
+}
 
 /// Set foundation and PM pool addresses. One-time only; prevents accidental re-config.
 /// Must be called after init before any distribution.

@@ -31,7 +31,7 @@
             <div v-if="wallets.length === 0" class="empty-state">
               <p>No Sui wallets detected.</p>
               <p class="text-muted">
-                Install a wallet like Slush or Sui Wallet, then refresh.
+                WaaP (email/social login) or Slush/Sui Wallet extension—refresh if WaaP doesn’t appear.
               </p>
             </div>
             <div v-else class="wallet-list">
@@ -81,9 +81,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSuiWallet, type WalletEntry } from '@/composables/useSuiWallet';
+import { initWaaP } from '@/wallet/waap';
 import { PRIVACY_POLICY_URL, getSuiServiceUrl, getWalrusConsentUrl } from '@/config/links';
 
 type PendingAccount = { address: string; label?: string };
@@ -98,6 +99,9 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore();
 const { wallets, connectWallet, signMessage, setActiveWallet } = useSuiWallet();
+
+// Lazy-load WaaP (email/phone/social) when modal opens so it appears in the wallet list
+watch(() => props.show, (visible) => { if (visible) initWaaP(); }, { immediate: true });
 const SUI_SERVICE = getSuiServiceUrl();
 const consentUrl = getWalrusConsentUrl();
 const privacyPolicyUrl = PRIVACY_POLICY_URL;

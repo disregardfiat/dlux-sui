@@ -56,6 +56,19 @@ sui client active-address
 
 ## Step 2: Deploy Contracts
 
+### Mainnet (production defaults)
+```bash
+./scripts/deploy-mainnet.sh
+```
+Uses: 3-day PM, 7-day proposals, 1 SUI posting fee, min 64 / max 128 walrus proofs.
+
+### Testnet (fast testing)
+```bash
+./scripts/deploy-testnet.sh
+```
+Uses: 1-min PM, 1-min proposals, 0.1 SUI posting fee, min 1 / max 128 walrus proofs. Applies `bootstrap_testnet` after publish.
+
+### Manual publish
 ```bash
 # Switch to the target network
 sui client switch --env mainnet  # or testnet
@@ -65,7 +78,7 @@ cd contracts/metadata_pm
 sui client publish --gas-budget 200000000
 ```
 
-The publish command outputs all created object IDs in the JSON response.
+The publish command outputs all created object IDs.
 
 ## Step 3: Update Server Configuration
 

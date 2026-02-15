@@ -61,7 +61,7 @@ The platform uses a **write-to-SUI, read-from-Dgraph** architecture with **socia
 ### User Experience
 
 #### Getting Started
-1. Connect SUI wallet (Slush, Sui Wallet, or any SuiNS-compatible wallet). If your wallet has multiple accounts, you will be asked to select which account to sign in with.
+1. Connect SUI wallet—**WaaP** (email, phone, or social login—no extension needed), Slush, Sui Wallet, or any SuiNS-compatible wallet. If your wallet has multiple accounts, you will be asked to select which account to sign in with.
 2. Register a SuiNS name (optional, recommended for cleaner URLs)
 3. Link ZK accounts for enhanced verification
 4. Post dApps with automatic safety reviews

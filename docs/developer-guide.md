@@ -126,6 +126,12 @@ const dappRegistration = await fetch('http://localhost:3001/dapps', {
 
 ## 🔑 Authentication & Wallets
 
+### Login Options
+
+- **WaaP** (Wallet as a Protocol): Email, phone, or social login (Google, Twitter, Discord)—no browser extension required. Embedded self-custodial wallets via human.tech. Appears in the connect modal when available.
+- **Wallet extensions**: Slush, Sui Wallet, or any Sui Wallet Standard–compatible wallet.
+- **ZK Account linking**: Link GitHub, Gmail, or Facebook for enhanced verification (see `POST /auth/zk-link`).
+
 ### Wallet Integration
 
 DLUX automatically injects wallet functionality into all dApps:
