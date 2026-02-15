@@ -44,7 +44,6 @@ const E_UPDATE_COOLDOWN: u64 = 14;
 const E_TOO_MANY_PLACEMENTS: u64 = 15;
 const E_TOO_MANY_USER_ZONES: u64 = 16;
 const E_TOO_MANY_CONTENT_ZONES: u64 = 17;
-const E_INVALID_PLANET: u64 = 18;
 const E_LOCK_TOO_SHORT: u64 = 19;
 const E_INVALID_TITLE: u64 = 20;
 const E_INVALID_DESCRIPTION: u64 = 21;
@@ -70,7 +69,6 @@ public struct AdCampaign has key, store {
     // Targeting fields
     user_zones: vector<vector<u8>>, // GeoIP zones (e.g., ["US", "EU", "ASIA"])
     content_zones: vector<vector<u8>>, // Content location zones
-    planet: Option<u8>, // 0=Earth, 1=Moon, 2=Mars (optional for digital twin)
     escrow_id: Option<ID>, // Reference to CampaignEscrow
     last_metadata_update_ts: u64, // For update cooldown (ms)
     /// Future: pointer to shared governance config (bid/status overrides, etc.)
@@ -152,7 +150,6 @@ public entry fun create_campaign_entry(
     end_at: u64,
     user_zones: vector<vector<u8>>,
     content_zones: vector<vector<u8>>,
-    planet: Option<u8>,
     lock_duration_ms: u64,
     clock: &Clock,
     ctx: &mut TxContext
@@ -168,7 +165,6 @@ public entry fun create_campaign_entry(
         end_at,
         user_zones,
         content_zones,
-        planet,
         lock_duration_ms,
         clock,
         ctx
@@ -187,7 +183,6 @@ public fun create_campaign(
     end_at: u64,
     user_zones: vector<vector<u8>>,
     content_zones: vector<vector<u8>>,
-    planet: Option<u8>,
     lock_duration_ms: u64,
     clock: &Clock,
     ctx: &mut TxContext
@@ -204,9 +199,6 @@ public fun create_campaign(
     assert!(vector::length(&placements) <= MAX_PLACEMENTS, E_TOO_MANY_PLACEMENTS);
     assert!(vector::length(&user_zones) <= MAX_USER_ZONES, E_TOO_MANY_USER_ZONES);
     assert!(vector::length(&content_zones) <= MAX_CONTENT_ZONES, E_TOO_MANY_CONTENT_ZONES);
-    if (option::is_some(&planet)) {
-        assert!(*option::borrow(&planet) <= 2, E_INVALID_PLANET);
-    };
     
     let now = clock.timestamp_ms();
     assert!(end_at > now, E_INVALID_DATES);
@@ -235,7 +227,6 @@ public fun create_campaign(
         impression_count: 0,
         user_zones,
         content_zones,
-        planet,
         escrow_id: option::some(escrow_id),
         last_metadata_update_ts: now,
         governance_override_id: option::none(),
@@ -555,11 +546,6 @@ public fun get_content_zones(campaign: &AdCampaign): vector<vector<u8>> {
     campaign.content_zones
 }
 
-/// Get planet (0=Earth, 1=Moon, 2=Mars)
-public fun get_planet(campaign: &AdCampaign): Option<u8> {
-    campaign.planet
-}
-
 /// Get escrow ID
 public fun get_escrow_id(campaign: &AdCampaign): Option<ID> {
     campaign.escrow_id
@@ -594,7 +580,6 @@ public fun create_campaign_for_testing(
         impression_count: 0,
         user_zones: vector[],
         content_zones: vector[],
-        planet: option::none(),
         escrow_id: option::none(),
         last_metadata_update_ts: start_at,
         governance_override_id: option::none(),
@@ -606,7 +591,7 @@ public fun destroy_for_testing(campaign: AdCampaign) {
     let AdCampaign { id, advertiser: _, title: _, description: _, target_url: _,
         placements: _, bid: _, total_budget: _, remaining_budget: _, status: _,
         start_at: _, end_at: _, created_at: _, impression_count: _,
-        user_zones: _, content_zones: _, planet: _, escrow_id: _,
+        user_zones: _, content_zones: _, escrow_id: _,
         last_metadata_update_ts: _, governance_override_id: _ } = campaign;
     object::delete(id);
 }

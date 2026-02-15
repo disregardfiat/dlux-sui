@@ -9,26 +9,6 @@ use dlux::ad_payments::AdminCap;
 use dlux::merkle_verifier::{MerkleRoot, verify_batch_ad_views, get_root_hash};
 use dlux::governance::{Self, GovernanceConfig};
 
-/// Location metadata for digital twin support
-public struct LocationMetadata has store {
-    latitude: u64,  // Scaled by 1e6 (e.g., 40600000 = 40.6 degrees)
-    longitude: u64, // Scaled by 1e6 (e.g., -74000000 = -74.0 degrees)
-    elevation: u64, // Elevation in meters
-    planet: u8,     // 0=Earth, 1=Moon, 2=Mars
-}
-
-/// Digital twin origin marker (6DOF pose)
-public struct DigitalTwinOrigin has store {
-    gltf_index: vector<u8>, // GLTF file reference or index
-    position_x: u64,        // Position X (scaled)
-    position_y: u64,        // Position Y (scaled)
-    position_z: u64,        // Position Z (scaled)
-    rotation_x: u64,        // Rotation X (quaternion component, scaled)
-    rotation_y: u64,        // Rotation Y (quaternion component, scaled)
-    rotation_z: u64,        // Rotation Z (quaternion component, scaled)
-    rotation_w: u64,        // Rotation W (quaternion component, scaled)
-}
-
 /// Ad revenue pool for content.
 /// Owned by creator; admin obtains &mut via PTB (creator must transfer pool for the tx).
 /// Consider add store + share_object at creation for shared-pool pattern, or PoolOwnerCap/PoolAdminCap split.
@@ -92,7 +72,6 @@ const E_THRESHOLD_NOT_MET: u64 = 3;
 const E_ALREADY_DISTRIBUTED: u64 = 4;
 const E_INSUFFICIENT_FUNDS: u64 = 5;
 const E_INVALID_MERKLE_PROOF: u64 = 6;
-const E_INVALID_PLANET: u64 = 8;
 const E_NO_MERKLE_ROOT_SET: u64 = 9;
 const E_POOL_PAUSED: u64 = 10;
 const E_NOT_POOL_CREATOR: u64 = 11;
@@ -284,26 +263,6 @@ public fun distribute_ad_revenue(
     pool.distributed = true;
 }
 
-/// Create location metadata
-/// latitude/longitude scaled by 1e6 (e.g., 40600000 = 40.6 degrees)
-/// planet: 0=Earth, 1=Moon, 2=Mars
-public fun create_location_metadata(
-    latitude: u64,
-    longitude: u64,
-    elevation: u64,
-    planet: u8
-): LocationMetadata {
-    // Basic validation
-    assert!(planet <= 2, E_INVALID_PLANET);
-    
-    LocationMetadata {
-        latitude,
-        longitude,
-        elevation,
-        planet,
-    }
-}
-
 // ===== View functions =====
 
 /// Get pool balance
@@ -383,27 +342,4 @@ public fun destroy_revenue_pool_for_testing(pool: AdRevenuePool, ctx: &mut TxCon
         balance::destroy_zero(balance);
     };
     object::delete(id);
-}
-
-/// Create digital twin origin marker
-public fun create_digital_twin_origin(
-    gltf_index: vector<u8>,
-    position_x: u64,
-    position_y: u64,
-    position_z: u64,
-    rotation_x: u64,
-    rotation_y: u64,
-    rotation_z: u64,
-    rotation_w: u64
-): DigitalTwinOrigin {
-    DigitalTwinOrigin {
-        gltf_index,
-        position_x,
-        position_y,
-        position_z,
-        rotation_x,
-        rotation_y,
-        rotation_z,
-        rotation_w,
-    }
 }
