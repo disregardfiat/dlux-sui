@@ -33,6 +33,7 @@
               <p class="text-muted">
                 WaaP (email/social login) or Slush/Sui Wallet extension—refresh if WaaP doesn’t appear.
               </p>
+              <a :href="GET_SUI_URL" target="_blank" rel="noopener noreferrer" class="small">Get SUI (buy or swap)</a>
             </div>
             <div v-else class="wallet-list">
               <div v-if="connectingError" class="alert alert-danger mb-3">
@@ -66,6 +67,16 @@
                 Shared login cookies are scoped for subdomains when possible.
               </small>
             </div>
+            <div class="mt-2">
+              <a
+                :href="GET_SUI_URL"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="small"
+              >
+                Get SUI (buy or swap)
+              </a>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -85,7 +96,7 @@ import { ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSuiWallet, type WalletEntry } from '@/composables/useSuiWallet';
 import { initWaaP } from '@/wallet/waap';
-import { PRIVACY_POLICY_URL, getSuiServiceUrl, getWalrusConsentUrl } from '@/config/links';
+import { PRIVACY_POLICY_URL, getSuiServiceUrl, getWalrusConsentUrl, GET_SUI_URL } from '@/config/links';
 
 type PendingAccount = { address: string; label?: string };
 

@@ -133,6 +133,15 @@ export const getWalrusConsentUrl = (): string => {
 /** Privacy policy URL. Defaults to walrus.dlux.io/privacy (or Walrus base in current env). */
 export const PRIVACY_POLICY_URL = env.VITE_PRIVACY_POLICY_URL || `${getWalrusServiceUrl()}/privacy`;
 
+/**
+ * Link for users to acquire SUI (swaps, direct buys, on-ramps).
+ * Prefer platforms with affiliate/referral programs—set VITE_GET_SUI_URL to your partner link.
+ * Affiliate-capable: MoonPay (impact.com), Transak (transak.com/referral-program),
+ * Coinbase, Binance, OKX, Robinhood. Default: Sui official hub.
+ */
+export const GET_SUI_URL =
+  env.VITE_GET_SUI_URL || 'https://www.sui.io/get-started';
+
 /** ZK service API base (no path). Prefer VITE_*; when served from dlux.io use https (if deployed); else localhost. */
 export const getZKServiceUrl = (): string => {
   const u = env.VITE_ZK_SERVICE_URL;

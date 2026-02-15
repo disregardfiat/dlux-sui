@@ -100,6 +100,7 @@ Each service ships an `env.example`. Copy it to `.env` and edit as needed.
 - `VITE_APP_ORIGIN`: Override base site origin for links (e.g. `https://dlux.io`)
 - `VITE_APP_PROTOCOL`: Protocol for generated links (default `https`)
 - `VITE_PRIVACY_POLICY_URL`: Override privacy policy URL
+- `VITE_GET_SUI_URL`: Link for users to acquire SUI (buy/swap). Default: `https://www.sui.io/get-started`. Prefer platforms with affiliate programs—set to your partner link when approved (e.g. MoonPay via impact.com, Transak at transak.com/referral-program, Coinbase/Binance/OKX referral).
 - `VITE_BRAND_NAME`: Short site name (default `DLUX`)
 - `VITE_BRAND_LONG_NAME`: Long site name for marketing copy
 - `VITE_BRAND_TAGLINE`: Tagline used in footer copy
