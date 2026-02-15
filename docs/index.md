@@ -87,7 +87,7 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 - **Folder Upload**: Select a folder to upload an entire app directory; relative paths (e.g. `src="js/app.js"`) are resolved via `manifest.pathMap`
 - **Remix UI**: Include `remix.html` in your folder upload to enable the Remix button—a page where users can swap assets (e.g. video player HTML with a different media file) and post a new dApp. Remix button is hidden when no `remix.html` is present.
 - **License**: Creative Commons selector (CC0, CC-BY, CC-BY-SA, etc.) when posting; recommended for remixable dApps to respect licensing.
-- **Safety Reviews**: Prediction markets for content moderation. When a PM resolves, the dApp detail page shows the outcome (e.g. "PM resolved as safe and accurate with N bettors (not the author)" or "PM resolved as unsafe or inaccurate with N bettors"), total capital placed, and an Explorer link—no Place Bet button.
+- **Safety Reviews**: Prediction markets for content moderation. Markets auto-resolve after the governance-set duration (capital-weighted: safe vs unsafe pool). Ad-share weight is flat for the first half of the PM, then linear decay. Bet pricing is size-aware: large orders move the price. **Close flow (no user claims):** one transaction (close_market_with_final_ad_and_distribute) deposits final ad revenue from the ad pool into the PM, then resolves and sends all payouts (redemption + ad share) to participants and dust to the creator; gas is paid from the pool. When a PM resolves, the dApp detail page shows the outcome and total capital placed.
 - **Posting Fee**: Min `2×storage + votable_posting_fee`; 50% to Foundation, 50% buys creator a YES vote in PM
 - **Media Support**: Walrus blob storage for assets
 - **Premium Content**: Monetize content with Seal encryption and paywalls
@@ -189,10 +189,11 @@ Note: Ad tracking only begins after explicit privacy policy consent during login
 
 #### Dgraph Service (Port 3003) - Markets & Governance
 - `GET /markets/fees/:dappId` - Total fees for dApp
-- `GET /markets/payouts/:owner` - Payout balance
+- `GET /markets/payouts/:owner` - Claimable PM payout plus aggregate stats (`total`, `marketsWon`, `marketsTotal`)
 - `GET /markets/high-payout` - Markets by pool size
 - `GET /markets/dapp/:dappId` - Active markets for dApp
 - `GET /markets/dapp/:dappId/resolved` - Resolved markets with bettor count and total pool
+- `GET /markets/dapp/:dappId/expired` - Expired but not yet resolved markets (pending auto-resolve)
 - `POST /markets` - Create prediction market (returns transaction ID)
 - `POST /markets/:id/bets` - Place prediction market bet (returns transaction ID)
 - `GET /safety/dapp/:dappId` - Safety status for dApp

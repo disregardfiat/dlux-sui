@@ -11,6 +11,7 @@ use sui::hash;
 use sui::bcs;
 use sui::table::{Self, Table};
 use dlux::governance::{Self, GovernanceConfig};
+use dlux::prediction_market::{Self, PMRegistry};
 
 /// Error codes
 const E_INVALID_NAME: u64 = 1;
@@ -196,7 +197,7 @@ public fun set_fee_recipients(
 /// Fee structure:  total fee >= 2 × walrus_storage_cost + governance.votable_posting_fee.
 /// After paying Walrus, the remainder is split 50/50:
 ///   - 50 % → Foundation
-///   - 50 % → PM pool (buys the creator a YES position in the prediction market)
+///   - 50 % → On-chain prediction market (creator's initial YES position; PM duration from governance)
 ///
 /// Duplicate (owner, permlink) is rejected.  Emits DappPosted for indexer; stores
 /// record for time lock and mute.
@@ -205,6 +206,7 @@ public fun post_dapp(
     pool: &mut PostingFeePool,
     config: &PostingTreasuryConfig,
     gov: &GovernanceConfig,
+    pm_registry: &mut PMRegistry,
     name: vector<u8>,
     description: vector<u8>,
     permlink: vector<u8>,
@@ -263,6 +265,13 @@ public fun post_dapp(
     assert!(!table::contains(&registry.claimed, claimed_key), E_DUPLICATE_PERMLINK);
     table::add(&mut registry.claimed, claimed_key, true);
 
+    // ── Generate unique dApp ID (before fee distribution so we can create PM) ──
+    let mut id_input = vector::empty<u8>();
+    vector::append(&mut id_input, bcs::to_bytes(&owner));
+    vector::append(&mut id_input, permlink);
+    vector::append(&mut id_input, bcs::to_bytes(&clock.timestamp_ms()));
+    let id_bytes = hash::keccak256(&id_input);
+
     // ── Deposit full fee, then distribute ──
     balance::join(&mut pool.balance, coin::into_balance(posting_fee));
     pool.total_collected = pool.total_collected + fee_amount;
@@ -276,26 +285,30 @@ public fun post_dapp(
         transfer::public_transfer(coin::from_balance(walrus_bal, ctx), config.walrus_storage_fund_address);
     };
 
-    // 2. Remainder: 50 % Foundation, 50 % PM pool (creator YES position)
-    //    Odd MIST → extra 1 to foundation.
+    // 2. Remainder: 50 % Foundation, 50 % on-chain PM (creator's initial YES position)
+    let pm_duration_ms = governance::get_pm_duration(gov);
+    let ends_at_ms = clock.timestamp_ms() + pm_duration_ms;
     let creator_yes_amount = if (remainder > 0) {
         let foundation_half = remainder / 2;
         let creator_yes_half = remainder - foundation_half;
         let foundation_bal = balance::split(&mut pool.balance, foundation_half);
-        let pm_bal = balance::split(&mut pool.balance, creator_yes_half);
+        let creator_yes_bal = balance::split(&mut pool.balance, creator_yes_half);
         transfer::public_transfer(coin::from_balance(foundation_bal, ctx), config.foundation_address);
-        transfer::public_transfer(coin::from_balance(pm_bal, ctx), config.pm_pool_address);
+        let creator_yes_coin = coin::from_balance(creator_yes_bal, ctx);
+        let id_for_pm = copy id_bytes;
+        prediction_market::create_and_share_market(
+            pm_registry,
+            id_for_pm,
+            owner,
+            creator_yes_coin,
+            ends_at_ms,
+            clock.timestamp_ms(),
+            ctx,
+        );
         creator_yes_half
     } else {
         0
     };
-
-    // ── Generate unique dApp ID ──
-    let mut id_input = vector::empty<u8>();
-    vector::append(&mut id_input, bcs::to_bytes(&owner));
-    vector::append(&mut id_input, permlink);
-    vector::append(&mut id_input, bcs::to_bytes(&clock.timestamp_ms()));
-    let id_bytes = hash::keccak256(&id_input);
 
     // ── Store record (time lock = governance PM duration; mute = false) ──
     let record = DappRecord {

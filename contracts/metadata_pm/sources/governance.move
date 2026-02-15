@@ -64,6 +64,9 @@ public struct GovernanceConfig has key {
     // ── Governance meta ──
     proposal_duration_ms: u64, // How long voting window lasts (default 7 days)
     quorum_pct: u64,           // % of eligible voters needed (default 51)
+    // ── Walrus bundle bounds (anti-spam: enforce proof count per drawdown) ──
+    min_walrus_bundle: u64,    // Min proofs per drawdown (default 64)
+    max_walrus_bundle: u64,    // Max proofs per drawdown (default 128)
     last_updated_ms: u64,
 }
 
@@ -151,6 +154,8 @@ fun init(ctx: &mut TxContext) {
         post_pm_pct: 0,
         proposal_duration_ms: 604_800_000,   // 7 days
         quorum_pct: 51,
+        min_walrus_bundle: 64,
+        max_walrus_bundle: 128,
         last_updated_ms: 0,
     };
     transfer::share_object(config);
@@ -173,6 +178,8 @@ public fun get_post_pm_pct(config: &GovernanceConfig): u64 { config.post_pm_pct 
 
 public fun get_proposal_duration(config: &GovernanceConfig): u64 { config.proposal_duration_ms }
 public fun get_quorum_pct(config: &GovernanceConfig): u64 { config.quorum_pct }
+public fun get_min_walrus_bundle(config: &GovernanceConfig): u64 { config.min_walrus_bundle }
+public fun get_max_walrus_bundle(config: &GovernanceConfig): u64 { config.max_walrus_bundle }
 
 // ───── Proposal lifecycle ─────
 
@@ -322,6 +329,15 @@ fun apply_param(
         let old = config.quorum_pct;
         config.quorum_pct = param_value;
         emit_config_updated(*param_key, old, param_value, now_ms);
+    } else if (*param_key == b"min_walrus_bundle") {
+        let old = config.min_walrus_bundle;
+        config.min_walrus_bundle = param_value;
+        emit_config_updated(*param_key, old, param_value, now_ms);
+    } else if (*param_key == b"max_walrus_bundle") {
+        assert!(param_value >= config.min_walrus_bundle, E_INVALID_PARAM_VALUE);
+        let old = config.max_walrus_bundle;
+        config.max_walrus_bundle = param_value;
+        emit_config_updated(*param_key, old, param_value, now_ms);
     } else if (*param_key == b"pm_splits") {
         assert!(vector::length(split_values) == 4, E_INVALID_SPLIT_COUNT);
         config.pm_foundation_pct = *vector::borrow(split_values, 0);
@@ -370,6 +386,29 @@ public fun init_for_testing(ctx: &mut TxContext) {
 }
 
 #[test_only]
+/// Governance config with relaxed walrus bundle bounds (min=1, max=128) for tests that use small proof counts.
+public fun create_governance_config_for_walrus_testing(ctx: &mut TxContext): GovernanceConfig {
+    GovernanceConfig {
+        id: object::new(ctx),
+        pm_duration_ms: 259_200_000,
+        votable_posting_fee: 1_000_000_000,
+        pm_foundation_pct: 10,
+        pm_gateway_pct: 9,
+        pm_creator_pct: 41,
+        pm_pool_pct: 40,
+        post_foundation_pct: 10,
+        post_gateway_pct: 9,
+        post_creator_pct: 81,
+        post_pm_pct: 0,
+        proposal_duration_ms: 604_800_000,
+        quorum_pct: 51,
+        min_walrus_bundle: 1,
+        max_walrus_bundle: 128,
+        last_updated_ms: 0,
+    }
+}
+
+#[test_only]
 public fun create_governance_config_for_testing(ctx: &mut TxContext): GovernanceConfig {
     GovernanceConfig {
         id: object::new(ctx),
@@ -385,6 +424,8 @@ public fun create_governance_config_for_testing(ctx: &mut TxContext): Governance
         post_pm_pct: 0,
         proposal_duration_ms: 604_800_000,
         quorum_pct: 51,
+        min_walrus_bundle: 64,
+        max_walrus_bundle: 128,
         last_updated_ms: 0,
     }
 }
@@ -396,7 +437,7 @@ public fun destroy_governance_config_for_testing(config: GovernanceConfig) {
         pm_duration_ms: _, votable_posting_fee: _,
         pm_foundation_pct: _, pm_gateway_pct: _, pm_creator_pct: _, pm_pool_pct: _,
         post_foundation_pct: _, post_gateway_pct: _, post_creator_pct: _, post_pm_pct: _,
-        proposal_duration_ms: _, quorum_pct: _, last_updated_ms: _,
+        proposal_duration_ms: _, quorum_pct: _, min_walrus_bundle: _, max_walrus_bundle: _, last_updated_ms: _,
     } = config;
     object::delete(id);
 }

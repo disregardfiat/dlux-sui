@@ -86,12 +86,10 @@ public struct PoolUnpaused has copy, drop {
 }
 
 /// Error codes
-const E_INVALID_ZK_PROOF: u64 = 1;
 const E_THRESHOLD_NOT_MET: u64 = 3;
 const E_ALREADY_DISTRIBUTED: u64 = 4;
 const E_INSUFFICIENT_FUNDS: u64 = 5;
 const E_INVALID_MERKLE_PROOF: u64 = 6;
-const E_INVALID_THRESHOLD: u64 = 7;
 const E_INVALID_PLANET: u64 = 8;
 const E_NO_MERKLE_ROOT_SET: u64 = 9;
 const E_POOL_PAUSED: u64 = 10;

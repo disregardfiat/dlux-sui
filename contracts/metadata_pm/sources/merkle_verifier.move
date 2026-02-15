@@ -6,8 +6,6 @@ use sui::hash;
 
 /// Max proofs per batch (DoS / gas cap)
 const MAX_BATCH_PROOFS: u64 = 100;
-/// Max content_id length (gas / DoS)
-const MAX_CONTENT_ID_LEN: u64 = 64;
 /// Max Merkle path depth (gas / DoS)
 const MAX_MERKLE_PATH_DEPTH: u64 = 40;
 

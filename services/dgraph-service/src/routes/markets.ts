@@ -61,10 +61,56 @@ router.get('/fees/:dappId', async (req, res) => {
   }
 });
 
-// GET /markets/payouts/:owner - payout balance (mock for MVP)
+// GET /markets/payouts/:owner - claimable PM payout + aggregate stats (marketsWon, marketsTotal)
 router.get('/payouts/:owner', async (req, res) => {
   try {
-    res.json({ total: 0 });
+    if (!isDGraphAvailable()) {
+      return res.json({ total: 0, marketsWon: 0, marketsTotal: 0 });
+    }
+    const { owner } = req.params;
+
+    // 1. Get claimable total from AccountEarningsLedger
+    let total = 0;
+    try {
+      const ledger = await earningsService.getOrCreateAccountLedger(owner);
+      const allTime = earningsService.getAllTimeTotals(ledger);
+      total = Math.round(allTime.pmTotal);
+    } catch (e) {
+      logger.warn('Failed to get account PM ledger', { owner, error: e });
+    }
+
+    // 2. Get aggregate stats: resolved markets where user bet, won vs total
+    let marketsWon = 0;
+    let marketsTotal = 0;
+    try {
+      const query = `
+        query bettorStats($bettor: string) {
+          markets(func: type(PredictionMarket)) @filter(eq(status, "resolved")) {
+            id
+            resolution
+            bets: bets @filter(eq(bettor, $bettor)) {
+              side
+              payout
+            }
+          }
+        }
+      `;
+      const result = await dgraphClient.query(query, { $bettor: owner });
+      const markets = result.markets || [];
+      for (const m of markets) {
+        const bets = Array.isArray(m.bets) ? m.bets : m.bets ? [m.bets] : [];
+        if (bets.length === 0) continue;
+        marketsTotal++;
+        const won = bets.some(
+          (b: any) => b.side === m.resolution && (b.payout || 0) > 0
+        );
+        if (won) marketsWon++;
+      }
+    } catch (e) {
+      logger.warn('Failed to get PM bettor stats', { owner, error: e });
+    }
+
+    res.json({ total, marketsWon, marketsTotal });
   } catch (error: any) {
     logger.error('Error getting payouts', error);
     res.status(500).json({ error: error.message || 'Failed to get payouts' });
@@ -126,6 +172,34 @@ router.get('/dapp/:dappId/resolved', async (req, res) => {
   } catch (error: any) {
     logger.error('Error getting resolved markets for dApp', error);
     res.status(500).json({ error: error.message || 'Failed to get resolved markets' });
+  }
+});
+
+// GET /markets/dapp/:dappId/expired - expired but not yet resolved (pending auto-resolve)
+router.get('/dapp/:dappId/expired', async (req, res) => {
+  try {
+    if (!isDGraphAvailable()) {
+      return res.json({ markets: [] });
+    }
+    const { dappId } = req.params;
+    const now = new Date().toISOString();
+    const query = `
+      query expiredMarkets($dappId: string, $now: string) {
+        markets(func: type(PredictionMarket)) @filter(
+          eq(dappId, $dappId) AND eq(status, "open") AND lt(expiresAt, $now)
+        ) {
+          id dappId safetyMetric description status
+          totalPool safePool unsafePool postingFeeContribution
+          createdAt expiresAt triggeredBy triggeredByAddress txDigest
+        }
+      }
+    `;
+    const result = await dgraphClient.query(query, { $dappId: dappId, $now: now });
+    const markets = (result.markets || []).map(mapMarket);
+    res.json({ markets });
+  } catch (error: any) {
+    logger.error('Error getting expired markets for dApp', error);
+    res.status(500).json({ error: error.message || 'Failed to get expired markets' });
   }
 });
 

@@ -104,7 +104,7 @@ Red (Unsafe Winning):  ██░░░░░░░░ 20% Safe
 3. **Review Bet Details:**
    - Side selected
    - Amount to bet
-   - Estimated shares (calculated by CPMM)
+   - Estimated shares (size-aware: large orders move the price and get fewer shares per SUI)
    - Potential payout (if market resolves in favor)
    - Transaction fee
 
@@ -136,7 +136,7 @@ Red (Unsafe Winning):  ██░░░░░░░░ 20% Safe
 
 **On-Chain Actions:**
 - SUI transferred from user to market pool
-- Bet shares calculated using Constant Product Market Maker (CPMM)
+- Bet shares calculated with size-aware pricing (effective price over the order; large orders get worse average execution)
 - Market pool sizes updated
 - Bet event emitted
 

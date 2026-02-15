@@ -17,6 +17,7 @@ use dlux::governance::{
     create_governance_config_for_testing,
     destroy_governance_config_for_testing,
 };
+use dlux::prediction_market;
 use sui::test_scenario;
 use sui::coin;
 use sui::sui::SUI;
@@ -53,12 +54,18 @@ fun test_post_dapp_with_fee() {
     test_scenario::next_tx(&mut scenario, POSTER);
     {
         let ctx = test_scenario::ctx(&mut scenario);
+        prediction_market::create_and_share_pm_registry_for_testing(ctx);
+    };
+
+    test_scenario::next_tx(&mut scenario, POSTER);
+    {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
+        let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
         let fee_coin = coin::mint_for_testing<SUI>(1_000_000_000, ctx);
         let mut pool = create_posting_fee_pool_for_testing(fee_coin, ctx);
         let mut registry = create_dapp_registry_for_testing(ctx);
-        // Posting fee = 2 SUI (comfortably above 2*storage + 1 SUI votable fee)
         let posting_fee = coin::mint_for_testing<SUI>(2_000_000_000, ctx);
         let config = create_posting_treasury_config_for_testing(PM_POOL, FOUNDATION, WALRUS_STORAGE_FUND, ctx);
         let gov = create_governance_config_for_testing(ctx);
@@ -68,6 +75,7 @@ fun test_post_dapp_with_fee() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"My dApp",
             b"A test dApp",
             b"my-dapp",
@@ -82,12 +90,10 @@ fun test_post_dapp_with_fee() {
             ctx
         );
 
-        // After posting: fee deposited then split (storage → Walrus, remainder → Foundation + PM)
-        // Pool should retain initial balance only (all posted fee distributed)
         assert!(get_pool_balance(&pool) == 1_000_000_000, 0);
-        // total_collected = initial (1 SUI) + posting fee (2 SUI)
         assert!(get_total_collected(&pool) == 1_000_000_000 + 2_000_000_000, 0);
 
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -99,22 +105,26 @@ fun test_post_dapp_with_fee() {
 }
 
 #[test]
-/// Verify the posting fee split: 50% Foundation, 50% PM pool (creator YES position).
+/// Verify the posting fee split: 50% Foundation, 50% on-chain PM (creator YES position).
 /// With 1 SUI fee and tiny blob sizes, storage cost is ~0, so remainder ≈ 1 SUI.
-/// Foundation gets 500_000_000, PM pool gets 500_000_000.
 fun test_post_dapp_fee_split() {
     let mut scenario = test_scenario::begin(POSTER);
 
     test_scenario::next_tx(&mut scenario, POSTER);
     {
         let ctx = test_scenario::ctx(&mut scenario);
+        prediction_market::create_and_share_pm_registry_for_testing(ctx);
+    };
+
+    test_scenario::next_tx(&mut scenario, POSTER);
+    {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
+        let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
-        // Start pool with zero balance so we can check it after post_dapp
         let zero_coin = coin::mint_for_testing<SUI>(0, ctx);
         let mut pool = create_posting_fee_pool_for_testing(zero_coin, ctx);
         let mut registry = create_dapp_registry_for_testing(ctx);
-        // 2 SUI fee (above 2*storage + 1 SUI votable)
         let posting_fee = coin::mint_for_testing<SUI>(2_000_000_000, ctx);
         let config = create_posting_treasury_config_for_testing(PM_POOL, FOUNDATION, WALRUS_STORAGE_FUND, ctx);
         let gov = create_governance_config_for_testing(ctx);
@@ -124,13 +134,14 @@ fun test_post_dapp_fee_split() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"SplitTest",
             b"desc",
             b"split-test",
             b"1.0.0",
             b"{}",
             vector[b"blob1"],
-            vector[100u64], // tiny blob => negligible storage cost
+            vector[100u64],
             vector[],
             b"cat",
             posting_fee,
@@ -138,11 +149,10 @@ fun test_post_dapp_fee_split() {
             ctx
         );
 
-        // After split, pool should be empty (storage ~0, remainder split to Foundation + PM)
         assert!(get_pool_balance(&pool) == 0, 0);
-        // total_collected = 2 SUI (the fee)
         assert!(get_total_collected(&pool) == 2_000_000_000, 0);
 
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -161,6 +171,12 @@ fun test_post_dapp_empty_name() {
     test_scenario::next_tx(&mut scenario, POSTER);
     {
         let ctx = test_scenario::ctx(&mut scenario);
+        prediction_market::create_and_share_pm_registry_for_testing(ctx);
+    };
+    test_scenario::next_tx(&mut scenario, POSTER);
+    {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
+        let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
         let fee_coin = coin::mint_for_testing<SUI>(1000000000, ctx);
@@ -174,6 +190,7 @@ fun test_post_dapp_empty_name() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"",
             b"Description",
             b"permlink",
@@ -187,6 +204,7 @@ fun test_post_dapp_empty_name() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -203,7 +221,10 @@ fun test_post_dapp_empty_permlink() {
     let mut scenario = test_scenario::begin(POSTER);
 
     test_scenario::next_tx(&mut scenario, POSTER);
+    { let ctx = test_scenario::ctx(&mut scenario); prediction_market::create_and_share_pm_registry_for_testing(ctx); };
+    test_scenario::next_tx(&mut scenario, POSTER);
     {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
@@ -218,6 +239,7 @@ fun test_post_dapp_empty_permlink() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"Name",
             b"Description",
             b"",
@@ -231,6 +253,7 @@ fun test_post_dapp_empty_permlink() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -247,7 +270,10 @@ fun test_post_dapp_empty_blob_ids() {
     let mut scenario = test_scenario::begin(POSTER);
 
     test_scenario::next_tx(&mut scenario, POSTER);
+    { let ctx = test_scenario::ctx(&mut scenario); prediction_market::create_and_share_pm_registry_for_testing(ctx); };
+    test_scenario::next_tx(&mut scenario, POSTER);
     {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
@@ -262,6 +288,7 @@ fun test_post_dapp_empty_blob_ids() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"Name",
             b"Description",
             b"permlink",
@@ -275,6 +302,7 @@ fun test_post_dapp_empty_blob_ids() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -291,14 +319,17 @@ fun test_post_dapp_insufficient_fee() {
     let mut scenario = test_scenario::begin(POSTER);
 
     test_scenario::next_tx(&mut scenario, POSTER);
+    { let ctx = test_scenario::ctx(&mut scenario); prediction_market::create_and_share_pm_registry_for_testing(ctx); };
+    test_scenario::next_tx(&mut scenario, POSTER);
     {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
         let fee_coin = coin::mint_for_testing<SUI>(1000000000, ctx);
         let mut pool = create_posting_fee_pool_for_testing(fee_coin, ctx);
         let mut registry = create_dapp_registry_for_testing(ctx);
-        let posting_fee = coin::mint_for_testing<SUI>(100000, ctx); // far below 1 SUI
+        let posting_fee = coin::mint_for_testing<SUI>(100000, ctx);
         let config = create_posting_treasury_config_for_testing(PM_POOL, FOUNDATION, WALRUS_STORAGE_FUND, ctx);
         let gov = create_governance_config_for_testing(ctx);
         post_dapp(
@@ -306,6 +337,7 @@ fun test_post_dapp_insufficient_fee() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"Name",
             b"Description",
             b"permlink",
@@ -319,6 +351,7 @@ fun test_post_dapp_insufficient_fee() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -335,7 +368,10 @@ fun test_post_dapp_name_too_long() {
     let mut scenario = test_scenario::begin(POSTER);
 
     test_scenario::next_tx(&mut scenario, POSTER);
+    { let ctx = test_scenario::ctx(&mut scenario); prediction_market::create_and_share_pm_registry_for_testing(ctx); };
+    test_scenario::next_tx(&mut scenario, POSTER);
     {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
 
@@ -356,6 +392,7 @@ fun test_post_dapp_name_too_long() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             long_name,
             b"Description",
             b"permlink",
@@ -369,6 +406,7 @@ fun test_post_dapp_name_too_long() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);
@@ -384,7 +422,10 @@ fun test_post_dapp_name_too_long() {
 fun test_post_dapp_duplicate_permlink() {
     let mut scenario = test_scenario::begin(POSTER);
     test_scenario::next_tx(&mut scenario, POSTER);
+    { let ctx = test_scenario::ctx(&mut scenario); prediction_market::create_and_share_pm_registry_for_testing(ctx); };
+    test_scenario::next_tx(&mut scenario, POSTER);
     {
+        let mut pm_registry = test_scenario::take_shared<prediction_market::PMRegistry>(&scenario);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
         let fee_coin = coin::mint_for_testing<SUI>(1_000_000_000, ctx);
@@ -398,6 +439,7 @@ fun test_post_dapp_duplicate_permlink() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"First",
             b"Desc",
             b"same-slug",
@@ -417,6 +459,7 @@ fun test_post_dapp_duplicate_permlink() {
             &mut pool,
             &config,
             &gov,
+            &mut pm_registry,
             b"Second",
             b"Desc2",
             b"same-slug",
@@ -430,6 +473,7 @@ fun test_post_dapp_duplicate_permlink() {
             &clock,
             ctx
         );
+        test_scenario::return_shared(pm_registry);
         return_registry_to_sender_for_testing(registry, ctx);
         destroy_posting_fee_pool_for_testing(pool, ctx);
         destroy_posting_treasury_config_for_testing(config);

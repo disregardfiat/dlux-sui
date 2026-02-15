@@ -47,6 +47,11 @@
             <span v-if="pmTrustTotal > 0">
               {{ formatPmTrustProfit(pmTrustProfit) }} won, on {{ pmTrustWon }}/{{ pmTrustTotal }} PMs
               <span v-if="pmTrustTotal > 0" class="profile-hero-pm-pct">({{ Math.round((pmTrustWon / pmTrustTotal) * 100) }}% win rate)</span>
+              <template v-if="isOwnProfile && pmTrustProfit > 0">
+                · <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="activeAccountTab = 'misc'">
+                  Claim earnings
+                </button>
+              </template>
             </span>
             <span v-else class="profile-hero-pm-empty">No PM history</span>
           </div>
@@ -1077,14 +1082,15 @@ async function loadPmTrust() {
   try {
     const res = await axios.get(`${DGRAPH_SERVICE}/markets/payouts/${encodeURIComponent(suiAddress.value)}`);
     const total = Number(res.data?.total) || 0;
-    // When backend adds per-market or win stats, set pmTrustWon / pmTrustTotal here
+    const marketsWon = Number(res.data?.marketsWon) ?? 0;
+    const marketsTotal = Number(res.data?.marketsTotal) ?? 0;
     pmTrustProfit.value = total;
-    if (total > 0) {
+    pmTrustWon.value = marketsWon;
+    pmTrustTotal.value = marketsTotal;
+    // Fallback: if total > 0 but no marketsTotal, assume at least 1 market won
+    if (total > 0 && marketsTotal === 0) {
       pmTrustTotal.value = 1;
       pmTrustWon.value = 1;
-    } else {
-      pmTrustTotal.value = 0;
-      pmTrustWon.value = 0;
     }
   } catch {
     pmTrustProfit.value = 0;

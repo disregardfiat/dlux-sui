@@ -25,6 +25,7 @@ import walrusNodesRouter from './routes/walrusNodes';
 import { attachAuth } from './middleware/auth';
 import { blockchainIndexer } from './services/blockchainIndexer';
 import { socialBlockchain } from './services/socialBlockchain';
+import { startMarketsScheduler, stopMarketsScheduler } from './services/marketsScheduler';
 
 dotenv.config();
 
@@ -393,6 +394,11 @@ async function startServer() {
       logger.info('Skipping social blockchain - DGraph not available');
     }
 
+    // Start PM auto-resolve scheduler (expired markets resolve capital-weighted)
+    if (dgraphAvailable) {
+      startMarketsScheduler();
+    }
+
     // Start server
     app.listen(PORT, () => {
       logger.info(`dGraph Service listening on port ${PORT}`);
@@ -417,12 +423,14 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  stopMarketsScheduler();
   await dgraphClient.disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  stopMarketsScheduler();
   await dgraphClient.disconnect();
   process.exit(0);
 });

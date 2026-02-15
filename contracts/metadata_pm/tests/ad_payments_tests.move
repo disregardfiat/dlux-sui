@@ -17,12 +17,11 @@ use dlux::ad_payments::{
     is_finalized,
     get_pool_balance,
     walrus_drawdown,
-    create_creator_escrow,
     resolve_escrow_success,
     resolve_escrow_failure,
 };
 use dlux::governance::{
-    create_governance_config_for_testing,
+    create_governance_config_for_walrus_testing,
     destroy_governance_config_for_testing,
 };
 use sui::test_scenario;
@@ -185,7 +184,7 @@ fun test_walrus_drawdown_pm_active() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx); // 1000 SUI
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -215,7 +214,9 @@ fun test_walrus_drawdown_pm_active() {
         // Creator escrow should have 41% of 100 SUI = 41 SUI
         assert!(get_creator_escrow_balance(&creator_escrow) == 41_000_000_000, 1);
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        let mut roots = vector::empty<vector<u8>>();
+        vector::push_back(&mut roots, root_hash);
+        destroy_revenue_pool_for_testing(pool, roots, ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -245,7 +246,7 @@ fun test_walrus_drawdown_pm_passed() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -272,7 +273,9 @@ fun test_walrus_drawdown_pm_passed() {
         // Creator escrow should be untouched (funds go directly to creator)
         assert!(get_creator_escrow_balance(&creator_escrow) == 0, 1);
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        let mut roots = vector::empty<vector<u8>>();
+        vector::push_back(&mut roots, root_hash);
+        destroy_revenue_pool_for_testing(pool, roots, ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -302,10 +305,10 @@ fun test_walrus_drawdown_pm_failed_aborts() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
-        let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
+        let (_root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
 
         walrus_drawdown(
             &mut pool,
@@ -315,7 +318,7 @@ fun test_walrus_drawdown_pm_failed_aborts() {
             proof_paths,
             proof_indices,
             b"content789",
-            root_hash,
+            b"root",
             2, 1,
             2, // pm_status = failed => ABORT
             PM_POOL, CREATOR, FOUNDATION, WALRUS_PROVIDER,
@@ -325,7 +328,7 @@ fun test_walrus_drawdown_pm_failed_aborts() {
             ctx
         );
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        destroy_revenue_pool_for_testing(pool, vector::empty(), ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -354,7 +357,7 @@ fun test_walrus_drawdown_insufficient_funds() {
 
         let initial_coin = coin::mint_for_testing<SUI>(50_000_000_000, ctx); // 50 SUI
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -377,7 +380,9 @@ fun test_walrus_drawdown_insufficient_funds() {
             ctx
         );
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        let mut roots = vector::empty<vector<u8>>();
+        vector::push_back(&mut roots, root_hash);
+        destroy_revenue_pool_for_testing(pool, roots, ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -403,7 +408,7 @@ fun test_walrus_drawdown_zero_amount() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -426,7 +431,7 @@ fun test_walrus_drawdown_zero_amount() {
             ctx
         );
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        destroy_revenue_pool_for_testing(pool, vector::empty(), ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -437,7 +442,7 @@ fun test_walrus_drawdown_zero_amount() {
 }
 
 #[test]
-#[expected_failure(abort_code = dlux::ad_payments::E_INVALID_VERIFICATION)]
+#[expected_failure(abort_code = dlux::ad_payments::E_BUNDLE_OUT_OF_BOUNDS)]
 fun test_walrus_drawdown_empty_proofs() {
     let mut scenario = test_scenario::begin(ADMIN);
 
@@ -452,7 +457,7 @@ fun test_walrus_drawdown_empty_proofs() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         walrus_drawdown(
@@ -473,7 +478,7 @@ fun test_walrus_drawdown_empty_proofs() {
             ctx
         );
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        destroy_revenue_pool_for_testing(pool, vector::empty(), ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -502,7 +507,7 @@ fun test_resolve_escrow_success() {
         // Create pool with funds, do a drawdown to fill the escrow
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -526,7 +531,9 @@ fun test_resolve_escrow_success() {
         assert!(get_creator_escrow_balance(&creator_escrow) == 0, 2);
         assert!(is_creator_escrow_resolved(&creator_escrow), 3);
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        let mut roots = vector::empty<vector<u8>>();
+        vector::push_back(&mut roots, root_hash);
+        destroy_revenue_pool_for_testing(pool, roots, ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);
@@ -552,7 +559,7 @@ fun test_resolve_escrow_failure() {
 
         let initial_coin = coin::mint_for_testing<SUI>(1_000_000_000_000, ctx);
         let mut pool = create_revenue_pool_for_testing(initial_coin, ctx);
-        let gov = create_governance_config_for_testing(ctx);
+        let gov = create_governance_config_for_walrus_testing(ctx);
         let mut creator_escrow = create_creator_pm_escrow_for_testing(b"dapp1", CREATOR, ctx);
 
         let (root_hash, proof_hashes, proof_paths, proof_indices) = build_merkle_proof();
@@ -575,7 +582,9 @@ fun test_resolve_escrow_failure() {
         assert!(get_creator_escrow_balance(&creator_escrow) == 0, 1);
         assert!(is_creator_escrow_resolved(&creator_escrow), 2);
 
-        destroy_revenue_pool_for_testing(pool, ctx);
+        let mut roots = vector::empty<vector<u8>>();
+        vector::push_back(&mut roots, root_hash);
+        destroy_revenue_pool_for_testing(pool, roots, ctx);
         destroy_governance_config_for_testing(gov);
         destroy_creator_pm_escrow_for_testing(creator_escrow, ctx);
         clock::destroy_for_testing(clock);

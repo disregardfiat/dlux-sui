@@ -125,6 +125,22 @@
               </div>
             </div>
           </div>
+          <!-- Expired but not yet resolved: pending auto-resolve -->
+          <div v-else-if="expiredMarkets.length > 0" class="expired-pm-pending">
+            <div v-for="market in expiredMarkets" :key="market.id" class="mb-3 p-3 rounded bg-warning bg-opacity-10">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-warning text-dark">Pending Resolution</span>
+                <span class="fw-bold">{{ formatMetric(market.safetyMetric) }}</span>
+                <span class="small text-muted">Expired {{ formatDateShort(market.expiresAt) }}</span>
+              </div>
+              <p class="mb-0 small text-muted">
+                Market expired. Resolution is automatic (capital-weighted). Funds will distribute to winning bettors shortly.
+              </p>
+              <div class="small text-muted mt-2">
+                Total capital: {{ mistToSui(market.totalPool || 0).toFixed(4) }} SUI
+              </div>
+            </div>
+          </div>
           <!-- Resolved markets: show outcome stats (no Place Bet) -->
           <div v-else-if="resolvedMarkets.length > 0" class="resolved-pm-stats">
             <div
@@ -163,7 +179,7 @@
             </div>
           </div>
           <p v-else class="text-muted small mb-0">
-            No active prediction markets for this dApp. Markets are created when the dApp is posted (or updated) with a posting fee.
+            No active or resolved prediction markets for this dApp. Markets are created when the dApp is posted (or updated) with a posting fee. After 3 days, markets auto-resolve and funds distribute to winning bettors.
           </p>
         </div>
       </div>
@@ -499,6 +515,7 @@ const loading = ref(true);
 const error = ref('');
 const activeMarkets = ref<PredictionMarket[]>([]);
 const resolvedMarkets = ref<any[]>([]);
+const expiredMarkets = ref<any[]>([]);
 const showPMBetModal = ref(false);
 const selectedPMMarket = ref<PredictionMarket | null>(null);
 const pmBetError = ref('');
@@ -898,13 +915,15 @@ async function fetchPremiumContent(dappId: string) {
 
 async function fetchMarkets(dappId: string, owner?: string, permlink?: string) {
   try {
-    const [activeRes, resolvedRes, safetyRes] = await Promise.all([
+    const [activeRes, resolvedRes, expiredRes, safetyRes] = await Promise.all([
       fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}`),
       fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/resolved`),
+      fetch(`${DGRAPH_SERVICE}/markets/dapp/${encodeURIComponent(dappId)}/expired`),
       fetch(`${DGRAPH_SERVICE}/safety/dapp/${encodeURIComponent(dappId)}`)
     ]);
     const activeData = activeRes.ok ? await activeRes.json().catch(() => ({})) : {};
     const resolvedData = resolvedRes.ok ? await resolvedRes.json().catch(() => ({})) : {};
+    const expiredData = expiredRes.ok ? await expiredRes.json().catch(() => ({})) : {};
     const safetyData = safetyRes.ok ? await safetyRes.json().catch(() => ({})) : {};
     activeMarkets.value = activeData.markets || [];
     let resolved = resolvedData.markets || [];
@@ -946,9 +965,11 @@ async function fetchMarkets(dappId: string, owner?: string, permlink?: string) {
       }
     }
     resolvedMarkets.value = resolved;
+    expiredMarkets.value = expiredData.markets || [];
   } catch {
     activeMarkets.value = [];
     resolvedMarkets.value = [];
+    expiredMarkets.value = [];
   }
 }
 

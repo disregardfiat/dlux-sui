@@ -5,13 +5,16 @@ use sui::coin::{Self, Coin};
 use sui::sui::SUI;
 use sui::balance::{Self, Balance};
 use sui::clock::Clock;
+use sui::object::{Self, ID};
+use sui::table::{Self, Table};
+use sui::transfer;
 use dlux::merkle_verifier;
 use dlux::governance::{Self, GovernanceConfig};
+use dlux::prediction_market;
 
 /// DoS / dust bounds
 const MIN_WITHDRAW_AMOUNT: u64 = 100_000;   // 100k MIST minimum per withdraw
 const MIN_DRAWDOWN_AMOUNT: u64 = 100_000;   // 100k MIST minimum per drawdown
-const MAX_WALRUS_PROOFS: u64 = 100;
 const MAX_CONTENT_ID_LEN: u64 = 64;
 
 /// Error codes
@@ -23,7 +26,6 @@ const E_ALREADY_FINALIZED: u64 = 6;
 const E_INVALID_VERIFICATION: u64 = 7;
 const E_INVALID_PROOF: u64 = 8;
 const E_POOL_PAUSED: u64 = 9;
-const E_TOO_MANY_PROOFS: u64 = 10;
 const E_INPUT_TOO_LONG: u64 = 11;
 const E_BELOW_MIN_WITHDRAW: u64 = 12;
 const E_BELOW_MIN_DRAWDOWN: u64 = 13;
@@ -31,6 +33,9 @@ const E_ESCROW_PAUSED: u64 = 14;
 const E_PM_FAILED_ADS_DISABLED: u64 = 15;
 const E_CREATOR_ESCROW_RESOLVED: u64 = 16;
 const E_INVALID_PM_STATUS: u64 = 17;
+const E_PROOF_REPLAY: u64 = 18;
+const E_BUNDLE_OUT_OF_BOUNDS: u64 = 19;
+const E_SPLITS_MUST_SUM_TO_100: u64 = 20;
 
 /// Campaign Escrow - holds funds for ad campaign
 public struct CampaignEscrow has key {
@@ -58,6 +63,8 @@ public struct RevenuePool has key {
     creator: address,
     /// Future: pointer to shared governance object (splits, max proofs, etc.)
     governance_config_id: Option<ID>,
+    /// Replay protection: root hashes of already-consumed Merkle proofs (prevents double-spend)
+    drawn_roots: Table<vector<u8>, bool>,
 }
 
 /// Admin capability for revenue distribution
@@ -182,6 +189,7 @@ fun init(ctx: &mut TxContext) {
         paused: false,
         creator: ctx.sender(),
         governance_config_id: option::none(),
+        drawn_roots: table::new(ctx),
     };
     transfer::share_object(pool);
 }
@@ -289,10 +297,12 @@ public fun add_funds(
 
 /// Withdraw from escrow for impression payment
 /// Requires on-chain Merkle verification (same as walrus_drawdown). Called after deduct_impression_cost.
+/// Note: _admin uses AdminCap for now; may be replaced with GatewayCap in future.
 public fun withdraw_for_impression(
     escrow: &mut CampaignEscrow,
     amount: u64,
     pool: &mut RevenuePool,
+    gov: &GovernanceConfig,
     proof_hashes: vector<vector<u8>>,
     proof_paths: vector<vector<vector<u8>>>,
     proof_indices: vector<vector<u8>>,
@@ -310,17 +320,16 @@ public fun withdraw_for_impression(
     assert!(amount >= MIN_WITHDRAW_AMOUNT, E_BELOW_MIN_WITHDRAW);
     assert!(amount > 0, E_ZERO_AMOUNT);
     let proof_count = vector::length(&proof_hashes);
-    assert!(proof_count <= MAX_WALRUS_PROOFS, E_TOO_MANY_PROOFS);
+    assert!(proof_count >= governance::get_min_walrus_bundle(gov) && proof_count <= governance::get_max_walrus_bundle(gov), E_BUNDLE_OUT_OF_BOUNDS);
     assert!(proof_count > 0, E_INVALID_VERIFICATION);
     assert!(vector::length(&content_id) <= MAX_CONTENT_ID_LEN, E_INPUT_TOO_LONG);
 
-    let mut content_id_copy = vector::empty<u8>();
-    let len = vector::length(&content_id);
-    let mut idx = 0u64;
-    while (idx < len) {
-        vector::push_back(&mut content_id_copy, *vector::borrow(&content_id, idx));
-        idx = idx + 1;
-    };
+    // Replay protection: reject already-used Merkle roots
+    let root_copy = copy root_hash;
+    assert!(!table::contains(&pool.drawn_roots, root_copy), E_PROOF_REPLAY);
+    table::add(&mut pool.drawn_roots, root_copy, true);
+
+    let content_id_copy = copy content_id;
     let merkle_root = merkle_verifier::create_merkle_root(content_id_copy, root_hash, leaf_count, threshold);
     assert!(
         merkle_verifier::verify_batch_ad_views(&merkle_root, proof_hashes, proof_paths, proof_indices),
@@ -437,7 +446,7 @@ public fun distribute_revenue(
     assert!(pm_status != governance::pm_status_failed(), E_PM_FAILED_ADS_DISABLED);
     assert!(balance::value(&pool.balance) >= amount, E_INSUFFICIENT_FUNDS);
 
-    let (f_pct, _g_pct, c_pct, p_pct) = if (pm_status == governance::pm_status_active()) {
+    let (f_pct, g_pct, c_pct, p_pct) = if (pm_status == governance::pm_status_active()) {
         (governance::get_pm_foundation_pct(gov),
          governance::get_pm_gateway_pct(gov),
          governance::get_pm_creator_pct(gov),
@@ -448,6 +457,7 @@ public fun distribute_revenue(
          governance::get_post_creator_pct(gov),
          governance::get_post_pm_pct(gov))
     };
+    assert!(f_pct + g_pct + c_pct + p_pct == 100, E_SPLITS_MUST_SUM_TO_100);
 
     let foundation_share = amount * f_pct / 100;
     let creator_share = amount * c_pct / 100;
@@ -550,20 +560,18 @@ public fun walrus_drawdown(
     assert!(balance::value(&pool.balance) >= amount, E_INSUFFICIENT_FUNDS);
     assert!(amount >= MIN_DRAWDOWN_AMOUNT, E_BELOW_MIN_DRAWDOWN);
     assert!(amount > 0, E_ZERO_AMOUNT);
-    assert!(vector::length(&proof_hashes) <= MAX_WALRUS_PROOFS, E_TOO_MANY_PROOFS);
     assert!(vector::length(&content_id) <= MAX_CONTENT_ID_LEN, E_INPUT_TOO_LONG);
 
     let proof_count = vector::length(&proof_hashes);
+    assert!(proof_count >= governance::get_min_walrus_bundle(gov) && proof_count <= governance::get_max_walrus_bundle(gov), E_BUNDLE_OUT_OF_BOUNDS);
     assert!(proof_count > 0, E_INVALID_VERIFICATION);
 
-    // Copy content_id for Merkle root (create_merkle_root consumes it)
-    let mut content_id_copy = vector::empty<u8>();
-    let len = vector::length(&content_id);
-    let mut idx = 0u64;
-    while (idx < len) {
-        vector::push_back(&mut content_id_copy, *vector::borrow(&content_id, idx));
-        idx = idx + 1;
-    };
+    // Replay protection
+    let root_copy = copy root_hash;
+    assert!(!table::contains(&pool.drawn_roots, root_copy), E_PROOF_REPLAY);
+    table::add(&mut pool.drawn_roots, root_copy, true);
+
+    let content_id_copy = copy content_id;
     let merkle_root = merkle_verifier::create_merkle_root(content_id_copy, root_hash, leaf_count, threshold);
     assert!(
         merkle_verifier::verify_batch_ad_views(&merkle_root, proof_hashes, proof_paths, proof_indices),
@@ -582,6 +590,7 @@ public fun walrus_drawdown(
          governance::get_post_creator_pct(gov),
          governance::get_post_pm_pct(gov))
     };
+    assert!(f_pct + g_pct + c_pct + p_pct == 100, E_SPLITS_MUST_SUM_TO_100);
 
     let foundation_share = amount * f_pct / 100;
     let creator_share    = amount * c_pct / 100;
@@ -614,6 +623,118 @@ public fun walrus_drawdown(
     if (pm_pool_share > 0) {
         let pm_bal = balance::split(&mut pool.balance, pm_pool_share);
         transfer::public_transfer(coin::from_balance(pm_bal, ctx), pm_pool);
+    };
+
+    pool.last_distribution = clock.timestamp_ms();
+
+    event::emit(WalrusDrawdown {
+        pool_id: pool.id.to_inner(),
+        walrus_provider,
+        content_id,
+        amount,
+        gateway_share,
+        foundation_share,
+        creator_share,
+        pm_pool_share,
+        pm_status,
+    });
+}
+
+/// Same as walrus_drawdown but sends the PM share (40%) to the on-chain prediction market via accept_ad_revenue.
+/// Use this when the dApp has an on-chain PM; PM share is time-weighted among participants.
+public fun walrus_drawdown_to_on_chain_pm(
+    pool: &mut RevenuePool,
+    gov: &GovernanceConfig,
+    creator_escrow: &mut CreatorPMEscrow,
+    proof_hashes: vector<vector<u8>>,
+    proof_paths: vector<vector<vector<u8>>>,
+    proof_indices: vector<vector<u8>>,
+    content_id: vector<u8>,
+    root_hash: vector<u8>,
+    leaf_count: u64,
+    threshold: u64,
+    pm_status: u8,
+    pm_market: &mut prediction_market::PMMarket,
+    creator: address,
+    foundation: address,
+    walrus_provider: address,
+    amount: u64,
+    clock: &Clock,
+    _admin: &AdminCap,
+    ctx: &mut TxContext
+) {
+    assert!(!pool.paused, E_POOL_PAUSED);
+    assert!(pm_status <= 2, E_INVALID_PM_STATUS);
+    assert!(pm_status != governance::pm_status_failed(), E_PM_FAILED_ADS_DISABLED);
+    assert!(balance::value(&pool.balance) >= amount, E_INSUFFICIENT_FUNDS);
+    assert!(amount >= MIN_DRAWDOWN_AMOUNT, E_BELOW_MIN_DRAWDOWN);
+    assert!(amount > 0, E_ZERO_AMOUNT);
+    assert!(vector::length(&content_id) <= MAX_CONTENT_ID_LEN, E_INPUT_TOO_LONG);
+
+    let proof_count = vector::length(&proof_hashes);
+    assert!(proof_count >= governance::get_min_walrus_bundle(gov) && proof_count <= governance::get_max_walrus_bundle(gov), E_BUNDLE_OUT_OF_BOUNDS);
+    assert!(proof_count > 0, E_INVALID_VERIFICATION);
+
+    // Replay protection
+    let root_copy = copy root_hash;
+    assert!(!table::contains(&pool.drawn_roots, root_copy), E_PROOF_REPLAY);
+    table::add(&mut pool.drawn_roots, root_copy, true);
+
+    let content_id_copy = copy content_id;
+    let merkle_root = merkle_verifier::create_merkle_root(content_id_copy, root_hash, leaf_count, threshold);
+    assert!(
+        merkle_verifier::verify_batch_ad_views(&merkle_root, proof_hashes, proof_paths, proof_indices),
+        E_INVALID_PROOF,
+    );
+
+    let (f_pct, g_pct, c_pct, p_pct) = if (pm_status == governance::pm_status_active()) {
+        (governance::get_pm_foundation_pct(gov),
+         governance::get_pm_gateway_pct(gov),
+         governance::get_pm_creator_pct(gov),
+         governance::get_pm_pool_pct(gov))
+    } else {
+        (governance::get_post_foundation_pct(gov),
+         governance::get_post_gateway_pct(gov),
+         governance::get_post_creator_pct(gov),
+         governance::get_post_pm_pct(gov))
+    };
+    assert!(f_pct + g_pct + c_pct + p_pct == 100, E_SPLITS_MUST_SUM_TO_100);
+
+    let foundation_share = amount * f_pct / 100;
+    let creator_share    = amount * c_pct / 100;
+    let pm_pool_share    = amount * p_pct / 100;
+    let gateway_share    = amount - foundation_share - creator_share - pm_pool_share;
+
+    let gateway_bal = balance::split(&mut pool.balance, gateway_share);
+    transfer::public_transfer(coin::from_balance(gateway_bal, ctx), walrus_provider);
+
+    let foundation_bal = balance::split(&mut pool.balance, foundation_share);
+    transfer::public_transfer(coin::from_balance(foundation_bal, ctx), foundation);
+
+    if (pm_status == governance::pm_status_active()) {
+        if (creator_share > 0) {
+            let creator_bal = balance::split(&mut pool.balance, creator_share);
+            balance::join(&mut creator_escrow.balance, creator_bal);
+            creator_escrow.total_escrowed = creator_escrow.total_escrowed + creator_share;
+        };
+    } else {
+        if (creator_share > 0) {
+            let creator_bal = balance::split(&mut pool.balance, creator_share);
+            transfer::public_transfer(coin::from_balance(creator_bal, ctx), creator);
+        };
+    };
+
+    if (pm_pool_share > 0) {
+        let pm_bal = balance::split(&mut pool.balance, pm_pool_share);
+        let pm_coin = coin::from_balance(pm_bal, ctx);
+        let dapp_id_copy = copy content_id;
+        let now = clock.timestamp_ms();
+        // Auto-close: if market has ended and not yet resolved, close with final ad and distribute
+        if (now >= prediction_market::get_ends_at_ms(pm_market) && !prediction_market::is_resolved(pm_market)) {
+            prediction_market::close_market_with_final_ad_and_distribute(pm_market, pm_coin, dapp_id_copy, clock, ctx);
+        } else {
+            prediction_market::accept_ad_revenue(pm_market, pm_coin, dapp_id_copy);
+        };
     };
 
     pool.last_distribution = clock.timestamp_ms();
@@ -698,7 +819,7 @@ public fun resolve_escrow_success(
     });
 }
 
-/// PM resolved NO → forfeit escrowed funds to PM pool.
+/// PM resolved NO → forfeit escrowed funds to PM pool (by address).
 public fun resolve_escrow_failure(
     escrow: &mut CreatorPMEscrow,
     pm_pool: address,
@@ -720,6 +841,33 @@ public fun resolve_escrow_failure(
         pm_passed: false,
         amount,
         recipient: pm_pool,
+    });
+}
+
+/// PM resolved NO → deposit forfeited escrow into the on-chain prediction market (for redemption by market participants).
+public fun resolve_escrow_failure_to_on_chain_pm(
+    escrow: &mut CreatorPMEscrow,
+    pm_market: &mut prediction_market::PMMarket,
+    dapp_id: vector<u8>,
+    _admin: &AdminCap,
+    ctx: &mut TxContext,
+) {
+    assert!(!escrow.resolved, E_CREATOR_ESCROW_RESOLVED);
+    escrow.resolved = true;
+
+    let amount = balance::value(&escrow.balance);
+    if (amount > 0) {
+        let bal = balance::withdraw_all(&mut escrow.balance);
+        let payment = coin::from_balance(bal, ctx);
+        prediction_market::deposit_forfeited_escrow(pm_market, payment, dapp_id);
+    };
+
+    event::emit(CreatorEscrowResolved {
+        escrow_id: object::id(escrow),
+        dapp_id: escrow.dapp_id,
+        pm_passed: false,
+        amount,
+        recipient: prediction_market::get_creator(pm_market),
     });
 }
 
@@ -820,12 +968,22 @@ public fun create_revenue_pool_for_testing(
         paused: false,
         creator: ctx.sender(),
         governance_config_id: option::none(),
+        drawn_roots: table::new(ctx),
     }
 }
 
 #[test_only]
-public fun destroy_revenue_pool_for_testing(pool: RevenuePool, ctx: &mut TxContext) {
-    let RevenuePool { id, mut balance, total_collected: _, last_distribution: _, paused: _, creator: _, governance_config_id: _ } = pool;
+/// Destroy revenue pool for testing. Pass root_hashes that were added during walrus_drawdown/withdraw_for_impression
+/// so the drawn_roots table can be cleared before destroy.
+public fun destroy_revenue_pool_for_testing(pool: RevenuePool, mut roots_to_remove: vector<vector<u8>>, ctx: &mut TxContext) {
+    let RevenuePool { id, mut balance, total_collected: _, last_distribution: _, paused: _, creator: _, governance_config_id: _, mut drawn_roots } = pool;
+    while (vector::length(&roots_to_remove) > 0) {
+        let r = vector::pop_back(&mut roots_to_remove);
+        if (table::contains(&drawn_roots, r)) {
+            table::remove(&mut drawn_roots, r);
+        };
+    };
+    table::destroy_empty(drawn_roots);
     let amount = balance::value(&balance);
     if (amount > 0) {
         let withdraw = balance::split(&mut balance, amount);
