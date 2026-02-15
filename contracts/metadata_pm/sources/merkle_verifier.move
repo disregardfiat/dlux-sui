@@ -43,6 +43,9 @@ public fun verify_merkle_inclusion(
     while (i < path_len) {
         let sibling = *vector::borrow(&path, i);
         let index = *vector::borrow(&indices, i);
+        if (index != 0 && index != 1) {
+            return false
+        };
         let mut parent_input = vector::empty<u8>();
         if (index == 0) {
             vector::append(&mut parent_input, current_hash);
@@ -98,6 +101,9 @@ public fun verify_batch_ad_views(
     if (proof_count > MAX_BATCH_PROOFS) {
         return false
     };
+    if (vector::length(&proof_paths) != proof_count || vector::length(&proof_indices) != proof_count) {
+        return false
+    };
     let mut i = 0;
     while (i < proof_count) {
         let path = *vector::borrow(&proof_paths, i);
@@ -150,6 +156,9 @@ public fun verify_batch_votes(
     };
     let proof_count = vector::length(&proof_hashes);
     if (proof_count > MAX_BATCH_PROOFS) {
+        return false
+    };
+    if (vector::length(&proof_paths) != proof_count || vector::length(&proof_indices) != proof_count) {
         return false
     };
     let mut i = 0;

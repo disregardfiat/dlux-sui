@@ -822,14 +822,18 @@ public fun resolve_escrow_success(
     });
 }
 
-/// PM resolved NO → forfeit escrowed funds to PM pool (by address).
+/// PM resolved NO → forfeit escrowed funds to PM pool.
+/// pm_pool comes from GovernanceConfig; blocks until treasuries configured.
 public fun resolve_escrow_failure(
     escrow: &mut CreatorPMEscrow,
-    pm_pool: address,
+    gov: &GovernanceConfig,
     _admin: &AdminCap,
     ctx: &mut TxContext,
 ) {
     assert!(!escrow.resolved, E_CREATOR_ESCROW_RESOLVED);
+    let pm_pool = governance::get_pm_pool_address(gov);
+    assert!(pm_pool != @0x0, E_TREASURY_NOT_CONFIGURED);
+
     escrow.resolved = true;
 
     let amount = balance::value(&escrow.balance);

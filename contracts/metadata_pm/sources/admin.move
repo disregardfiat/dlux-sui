@@ -15,6 +15,7 @@ use dlux::governance::GovernanceAdminCap;
 // ───── Error codes ─────
 
 const E_INVALID_FEE_PCT: u64 = 4;
+const E_INVALID_ADMIN: u64 = 5;
 
 // ───── Structs ─────
 
@@ -94,6 +95,7 @@ public fun add_admin(
     admin: address,
     _governance_cap: &GovernanceAdminCap,
 ) {
+    assert!(admin != @0x0, E_INVALID_ADMIN);
     if (!table::contains(&admin_set.admins, admin)) {
         table::add(&mut admin_set.admins, admin, true);
         event::emit(AdminAdded { admin });
@@ -106,6 +108,7 @@ public fun remove_admin(
     admin: address,
     _governance_cap: &GovernanceAdminCap,
 ) {
+    assert!(admin != @0x0, E_INVALID_ADMIN);
     if (table::contains(&admin_set.admins, admin)) {
         table::remove(&mut admin_set.admins, admin);
         event::emit(AdminRemoved { admin });
@@ -125,6 +128,7 @@ public fun get_fee_pct(admin_set: &AdminSet): u64 {
 }
 
 /// Record override: deposit fee and emit AdminOverride event. Called by prediction_market.
+/// Fee is always Balance<SUI> (override takes 2–5% of PM ad revenue).
 public fun record_override(
     admin_set: &mut AdminSet,
     market_id: ID,

@@ -29,7 +29,9 @@ public struct DigitalTwinOrigin has store {
     rotation_w: u64,        // Rotation W (quaternion component, scaled)
 }
 
-/// Ad revenue pool for content
+/// Ad revenue pool for content.
+/// Owned by creator; admin obtains &mut via PTB (creator must transfer pool for the tx).
+/// Consider add store + share_object at creation for shared-pool pattern, or PoolOwnerCap/PoolAdminCap split.
 public struct AdRevenuePool has key {
     id: UID,
     content_id: vector<u8>,
@@ -103,6 +105,8 @@ const E_INPUT_TOO_LONG: u64 = 17;
 const E_PM_FAILED_ADS_DISABLED: u64 = 18;
 const E_INVALID_PM_STATUS: u64 = 19;
 const E_TREASURY_NOT_CONFIGURED: u64 = 20;
+const E_GOV_NOT_CONFIGURED: u64 = 21;
+const E_GOV_MISMATCH: u64 = 22;
 const MAX_CONTENT_ID_LEN: u64 = 64;
 const MAX_BATCH_PROOFS: u64 = 100;
 const MAX_MERKLE_PATH_DEPTH: u64 = 40;
@@ -213,6 +217,8 @@ public fun distribute_ad_revenue(
 ) {
     assert!(!pool.distributed, E_ALREADY_DISTRIBUTED);
     assert!(!pool.paused, E_POOL_PAUSED);
+    assert!(option::is_some(&pool.governance_config_id), E_GOV_NOT_CONFIGURED);
+    assert!(*option::borrow(&pool.governance_config_id) == object::id(gov), E_GOV_MISMATCH);
     assert!(pm_status <= 2, E_INVALID_PM_STATUS);
     assert!(pm_status != governance::pm_status_failed(), E_PM_FAILED_ADS_DISABLED);
     assert!(option::is_some(&pool.merkle_root), E_NO_MERKLE_ROOT_SET);

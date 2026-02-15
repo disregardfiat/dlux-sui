@@ -4,6 +4,7 @@ module dlux::metadata_pm_tests;
 use dlux::metadata_pm::{
     create_revenue_pool,
     set_merkle_root,
+    set_governance_config,
     distribute_ad_revenue,
     destroy_revenue_pool_for_testing,
 };
@@ -159,6 +160,7 @@ fun test_distribute_revenue_pm_active() {
                 build_merkle_proof_for_content(b"content_123");
             let merkle_root = create_merkle_root(b"content_123", root_hash, 2, 1);
             set_merkle_root(&mut pool, merkle_root, &admin_cap);
+            set_governance_config(&mut pool, &gov, &admin_cap);
 
             distribute_ad_revenue(
                 &mut pool,
@@ -198,6 +200,7 @@ fun test_distribute_revenue_pm_passed() {
                 build_merkle_proof_for_content(b"content_passed");
             let merkle_root = create_merkle_root(b"content_passed", root_hash, 2, 1);
             set_merkle_root(&mut pool, merkle_root, &admin_cap);
+            set_governance_config(&mut pool, &gov, &admin_cap);
 
             distribute_ad_revenue(
                 &mut pool,
@@ -237,6 +240,7 @@ fun test_distribute_revenue_pm_failed_aborts() {
                 build_merkle_proof_for_content(b"content_fail");
             let merkle_root = create_merkle_root(b"content_fail", root_hash, 2, 1);
             set_merkle_root(&mut pool, merkle_root, &admin_cap);
+            set_governance_config(&mut pool, &gov, &admin_cap);
 
             distribute_ad_revenue(
                 &mut pool,
@@ -270,6 +274,7 @@ fun test_distribute_revenue_no_merkle_root_set() {
             let payment = coin::mint_for_testing<SUI>(1000, ctx);
             let mut pool = create_revenue_pool(b"content_123", payment, ctx);
             let gov = create_governance_config_for_testing(ctx);
+            set_governance_config(&mut pool, &gov, &admin_cap);
             distribute_ad_revenue(
                 &mut pool,
                 &gov,
@@ -307,6 +312,7 @@ fun test_distribute_revenue_already_distributed() {
                 build_merkle_proof_for_content(b"content_123");
             let merkle_root = create_merkle_root(b"content_123", root_hash, 2, 1);
             set_merkle_root(&mut pool, merkle_root, &admin_cap);
+            set_governance_config(&mut pool, &gov, &admin_cap);
 
             distribute_ad_revenue(
                 &mut pool, &gov,

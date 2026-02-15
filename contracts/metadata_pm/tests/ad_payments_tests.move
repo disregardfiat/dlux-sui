@@ -577,7 +577,7 @@ fun test_resolve_escrow_failure() {
         assert!(get_creator_escrow_balance(&creator_escrow) == 41_000_000_000, 0);
 
         // Resolve as failure → PM pool gets the 41 SUI
-        resolve_escrow_failure(&mut creator_escrow, PM_POOL, &admin_cap, ctx);
+        resolve_escrow_failure(&mut creator_escrow, &gov, &admin_cap, ctx);
 
         assert!(get_creator_escrow_balance(&creator_escrow) == 0, 1);
         assert!(is_creator_escrow_resolved(&creator_escrow), 2);

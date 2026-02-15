@@ -12,6 +12,8 @@ module dlux::governance;
 
 use sui::event;
 use sui::clock::Clock;
+use sui::bcs;
+use sui::address;
 use dlux::merkle_verifier;
 
 // ───── Error codes ─────
@@ -27,6 +29,8 @@ const E_INPUT_TOO_LONG: u64 = 8;
 const E_YES_NOT_MAJORITY: u64 = 9;
 const E_INVALID_SPLIT_COUNT: u64 = 10;
 const E_TOO_MANY_PROOFS: u64 = 11;
+const E_TREASURIES_ALREADY_CONFIGURED: u64 = 12;
+const E_INVALID_TREASURY_ENCODING: u64 = 13;
 
 // ───── Limits ─────
 
@@ -67,9 +71,11 @@ public struct GovernanceConfig has key {
     // ── Walrus bundle bounds (anti-spam: enforce proof count per drawdown) ──
     min_walrus_bundle: u64,    // Min proofs per drawdown (default 64)
     max_walrus_bundle: u64,    // Max proofs per drawdown (default 128)
-    // ── Treasury addresses (set via set_treasury_addresses; not votable) ──
+    // ── Treasury addresses (set via set_treasury_addresses or votable b"treasury_addresses") ──
     foundation_address: address,
     pm_pool_address: address,
+    /// Prevents accidental re-config; set true on first set_treasury_addresses.
+    treasuries_configured: bool,
     last_updated_ms: u64,
 }
 
@@ -161,6 +167,7 @@ fun init(ctx: &mut TxContext) {
         max_walrus_bundle: 128,
         foundation_address: @0x0,
         pm_pool_address: @0x0,
+        treasuries_configured: false,
         last_updated_ms: 0,
     };
     transfer::share_object(config);
@@ -190,16 +197,18 @@ public fun get_pm_pool_address(config: &GovernanceConfig): address { config.pm_p
 
 // ───── Treasury config (admin only; not votable) ─────
 
-/// Set foundation and PM pool addresses. Must be called after init before any distribution.
-/// Prevents admin redirect: distribute_ad_revenue uses these instead of per-call params.
+/// Set foundation and PM pool addresses. One-time only; prevents accidental re-config.
+/// Must be called after init before any distribution.
 public fun set_treasury_addresses(
     config: &mut GovernanceConfig,
     foundation: address,
     pm_pool: address,
     _admin: &GovernanceAdminCap,
 ) {
+    assert!(!config.treasuries_configured, E_TREASURIES_ALREADY_CONFIGURED);
     config.foundation_address = foundation;
     config.pm_pool_address = pm_pool;
+    config.treasuries_configured = true;
 }
 
 // ───── Proposal lifecycle ─────
@@ -222,12 +231,14 @@ public fun create_proposal(
     let key_len = vector::length(&param_key);
     assert!(key_len > 0 && key_len <= MAX_PARAM_KEY_LEN, E_INPUT_TOO_LONG);
 
-    // Validate split_values for split proposals
+    // Validate split_values for split proposals and treasury_addresses
     if (is_splits_key(&param_key)) {
         assert!(vector::length(&split_values) == 4, E_INVALID_SPLIT_COUNT);
         let sum = *vector::borrow(&split_values, 0) + *vector::borrow(&split_values, 1)
                 + *vector::borrow(&split_values, 2) + *vector::borrow(&split_values, 3);
         assert!(sum == 100, E_SPLITS_MUST_SUM_TO_100);
+    } else if (param_key == b"treasury_addresses") {
+        assert!(vector::length(&split_values) == 8, E_INVALID_TREASURY_ENCODING);
     };
 
     let now = clock.timestamp_ms();
@@ -375,6 +386,12 @@ fun apply_param(
         config.post_pm_pct         = *vector::borrow(split_values, 3);
         emit_splits_updated(*param_key, config.post_foundation_pct, config.post_gateway_pct,
                             config.post_creator_pct, config.post_pm_pct, now_ms);
+    } else if (*param_key == b"treasury_addresses") {
+        // 8 u64s = 64 bytes: first 32 bytes = foundation, next 32 = pm_pool (each u64 BCS-encodes to 8 bytes)
+        let (foundation, pm_pool) = decode_treasury_addresses(split_values);
+        config.foundation_address = foundation;
+        config.pm_pool_address = pm_pool;
+        config.treasuries_configured = true;
     } else {
         abort E_INVALID_PARAM_KEY
     };
@@ -383,6 +400,28 @@ fun apply_param(
 
 fun is_splits_key(key: &vector<u8>): bool {
     *key == b"pm_splits" || *key == b"post_splits"
+}
+
+/// Decode 8 u64s (64 bytes) into (foundation_address, pm_pool_address).
+/// Each address = 32 bytes = 4 u64s, BCS-encoded.
+fun decode_treasury_addresses(split_values: &vector<u64>): (address, address) {
+    let mut fb = vector::empty<u8>();
+    let mut i = 0;
+    while (i < 4) {
+        let v = *vector::borrow(split_values, i);
+        vector::append(&mut fb, bcs::to_bytes(&v));
+        i = i + 1;
+    };
+    let mut pb = vector::empty<u8>();
+    i = 4;
+    while (i < 8) {
+        let v = *vector::borrow(split_values, i);
+        vector::append(&mut pb, bcs::to_bytes(&v));
+        i = i + 1;
+    };
+    let foundation = address::from_bytes(fb);
+    let pm_pool = address::from_bytes(pb);
+    (foundation, pm_pool)
 }
 
 fun emit_config_updated(param_key: vector<u8>, old_value: u64, new_value: u64, ts: u64) {
@@ -427,6 +466,7 @@ public fun create_governance_config_for_walrus_testing(ctx: &mut TxContext): Gov
         max_walrus_bundle: 128,
         foundation_address: @0xFF,
         pm_pool_address: @0xDD,
+        treasuries_configured: true,
         last_updated_ms: 0,
     }
 }
@@ -451,6 +491,7 @@ public fun create_governance_config_for_testing(ctx: &mut TxContext): Governance
         max_walrus_bundle: 128,
         foundation_address: @0xFF,
         pm_pool_address: @0xDD,
+        treasuries_configured: true,
         last_updated_ms: 0,
     }
 }
@@ -463,7 +504,7 @@ public fun destroy_governance_config_for_testing(config: GovernanceConfig) {
         pm_foundation_pct: _, pm_gateway_pct: _, pm_creator_pct: _, pm_pool_pct: _,
         post_foundation_pct: _, post_gateway_pct: _, post_creator_pct: _, post_pm_pct: _,
         proposal_duration_ms: _, quorum_pct: _, min_walrus_bundle: _, max_walrus_bundle: _,
-        foundation_address: _, pm_pool_address: _,
+        foundation_address: _, pm_pool_address: _, treasuries_configured: _,
         last_updated_ms: _,
     } = config;
     object::delete(id);
