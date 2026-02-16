@@ -31,7 +31,7 @@
             <div v-if="wallets.length === 0" class="empty-state">
               <p>No Sui wallets detected.</p>
               <p class="text-muted">
-                WaaP (email/social login) or Slush/Sui Wallet extension—refresh if WaaP doesn’t appear.
+                SSO (email/social login) or Slush/Sui Wallet extension—refresh if SSO doesn't appear.
               </p>
               <a :href="GET_SUI_URL" target="_blank" rel="noopener noreferrer" class="small">Get SUI (buy or swap)</a>
             </div>
