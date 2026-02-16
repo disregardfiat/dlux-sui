@@ -3,7 +3,7 @@ dlux.io {
         reverse_proxy localhost:3002
     }
     handle {
-        reverse_proxy localhost:3006
+        reverse_proxy localhost:3008
     }
 }
 
