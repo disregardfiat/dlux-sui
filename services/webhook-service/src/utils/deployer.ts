@@ -8,6 +8,9 @@ const execAsync = promisify(exec);
 const REPO_PATH = process.env.REPO_PATH || '/home/ubuntu/dlux-sui';
 const DEPLOY_SCRIPT_PATH = process.env.DEPLOY_SCRIPT_PATH || path.join(REPO_PATH, 'deploy-server.sh');
 const DEPLOY_BRANCH = process.env.DEPLOY_BRANCH || 'main';
+const TEST_DEPLOY_BRANCH = process.env.TEST_DEPLOY_BRANCH || 'move';
+const DEPLOY_TEST_FRONTEND_SCRIPT = path.join(REPO_PATH, 'scripts', 'deploy-test-frontend.sh');
+const DEPLOY_PROD_FRONTEND_SCRIPT = path.join(REPO_PATH, 'scripts', 'deploy-prod-frontend.sh');
 const RESET_SCRIPT_PATH = process.env.DGRAPH_RESET_SCRIPT_PATH || path.join(REPO_PATH, 'scripts', 'reset-dgraph.sh');
 
 export interface DeploymentResult {
@@ -17,11 +20,11 @@ export interface DeploymentResult {
 }
 
 /**
- * Execute deployment script
+ * Execute deployment script (full deploy - all services)
  */
 export async function deploy(): Promise<DeploymentResult> {
   try {
-    logger.info(`Starting deployment from ${REPO_PATH}`);
+    logger.info(`Starting full deployment from ${REPO_PATH}`);
     
     // Check if deploy script exists
     const { stdout: scriptExists } = await execAsync(`test -f ${DEPLOY_SCRIPT_PATH} && echo "exists" || echo "missing"`);
@@ -63,6 +66,108 @@ export async function deploy(): Promise<DeploymentResult> {
       success: false,
       output: error.stdout || '',
       error: error.message || 'Unknown deployment error',
+    };
+  }
+}
+
+/**
+ * Deploy test frontend from move branch to test.dlux.io
+ */
+export async function deployTestFrontend(): Promise<DeploymentResult> {
+  try {
+    logger.info(`Starting test frontend deployment from ${TEST_DEPLOY_BRANCH} branch`);
+    
+    // Check if deploy script exists
+    const { stdout: scriptExists } = await execAsync(`test -f ${DEPLOY_TEST_FRONTEND_SCRIPT} && echo "exists" || echo "missing"`);
+    
+    if (scriptExists.trim() !== 'exists') {
+      throw new Error(`Test frontend deploy script not found at ${DEPLOY_TEST_FRONTEND_SCRIPT}`);
+    }
+
+    // Make sure script is executable
+    await execAsync(`chmod +x ${DEPLOY_TEST_FRONTEND_SCRIPT}`);
+
+    // Run deployment script
+    logger.info(`Executing test frontend deploy script: ${DEPLOY_TEST_FRONTEND_SCRIPT}`);
+    const { stdout, stderr } = await execAsync(
+      `cd ${REPO_PATH} && ${DEPLOY_TEST_FRONTEND_SCRIPT}`,
+      {
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for output
+        timeout: 300000, // 5 minute timeout
+      }
+    );
+
+    const output = stdout || '';
+    const error = stderr || '';
+
+    if (error && !output.includes('✅')) {
+      logger.warn('Test frontend deployment completed with warnings', { error });
+    }
+
+    logger.info('Test frontend deployment completed successfully');
+    
+    return {
+      success: true,
+      output: output + (error ? `\nWarnings: ${error}` : ''),
+    };
+  } catch (error: any) {
+    logger.error('Test frontend deployment failed', { error: error.message, stack: error.stack });
+    
+    return {
+      success: false,
+      output: error.stdout || '',
+      error: error.message || 'Unknown test frontend deployment error',
+    };
+  }
+}
+
+/**
+ * Deploy production frontend from main branch to dlux.io
+ */
+export async function deployProdFrontend(): Promise<DeploymentResult> {
+  try {
+    logger.info(`Starting production frontend deployment from ${DEPLOY_BRANCH} branch`);
+    
+    // Check if deploy script exists
+    const { stdout: scriptExists } = await execAsync(`test -f ${DEPLOY_PROD_FRONTEND_SCRIPT} && echo "exists" || echo "missing"`);
+    
+    if (scriptExists.trim() !== 'exists') {
+      throw new Error(`Production frontend deploy script not found at ${DEPLOY_PROD_FRONTEND_SCRIPT}`);
+    }
+
+    // Make sure script is executable
+    await execAsync(`chmod +x ${DEPLOY_PROD_FRONTEND_SCRIPT}`);
+
+    // Run deployment script
+    logger.info(`Executing production frontend deploy script: ${DEPLOY_PROD_FRONTEND_SCRIPT}`);
+    const { stdout, stderr } = await execAsync(
+      `cd ${REPO_PATH} && ${DEPLOY_PROD_FRONTEND_SCRIPT}`,
+      {
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for output
+        timeout: 300000, // 5 minute timeout
+      }
+    );
+
+    const output = stdout || '';
+    const error = stderr || '';
+
+    if (error && !output.includes('✅')) {
+      logger.warn('Production frontend deployment completed with warnings', { error });
+    }
+
+    logger.info('Production frontend deployment completed successfully');
+    
+    return {
+      success: true,
+      output: output + (error ? `\nWarnings: ${error}` : ''),
+    };
+  } catch (error: any) {
+    logger.error('Production frontend deployment failed', { error: error.message, stack: error.stack });
+    
+    return {
+      success: false,
+      output: error.stdout || '',
+      error: error.message || 'Unknown production frontend deployment error',
     };
   }
 }

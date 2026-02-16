@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { verifyGitHubSignature } from '../utils/webhookVerifier';
-import { deploy, pullGitChanges, resetDgraph, DeploymentResult } from '../utils/deployer';
+import { deploy, deployTestFrontend, deployProdFrontend, pullGitChanges, resetDgraph, DeploymentResult } from '../utils/deployer';
 
 const router = Router();
 
@@ -22,6 +22,7 @@ interface GitHubPushEvent {
 }
 
 const DEPLOY_BRANCH = process.env.DEPLOY_BRANCH || 'main';
+const TEST_DEPLOY_BRANCH = process.env.TEST_DEPLOY_BRANCH || 'move';
 
 // Middleware to capture raw body for signature verification
 router.use((req: Request, res: Response, next) => {
@@ -80,11 +81,20 @@ router.post('/webhook', async (req: Request, res: Response) => {
     if (event === 'push') {
       const payload = req.body as GitHubPushEvent;
       
-      // Only deploy on push to main branch
+      // Get the branch that was pushed to
       const refBranch = payload.ref.replace('refs/heads/', '');
       
-      if (refBranch !== DEPLOY_BRANCH) {
-        logger.info(`Push to ${refBranch} ignored (only deploying ${DEPLOY_BRANCH})`);
+      // Determine which deployment to trigger based on branch
+      let deployType: 'main' | 'test' | 'none' = 'none';
+      
+      if (refBranch === DEPLOY_BRANCH) {
+        // Main branch push - deploy production frontend only (no services)
+        deployType = 'main';
+      } else if (refBranch === TEST_DEPLOY_BRANCH) {
+        // Move branch push - deploy test frontend
+        deployType = 'test';
+      } else {
+        logger.info(`Push to ${refBranch} ignored (deploying only ${DEPLOY_BRANCH} or ${TEST_DEPLOY_BRANCH})`);
         return res.json({ 
           message: `Push to ${refBranch} ignored`,
           deployed: false 
@@ -95,18 +105,19 @@ router.post('/webhook', async (req: Request, res: Response) => {
         /-reset dgraph/i.test(commit.message)
       );
 
-      logger.info('Push to main branch detected', {
+      logger.info(`Push to ${refBranch} branch detected`, {
         repository: payload.repository.full_name,
         commits: payload.commits.length,
         commitIds: payload.commits.map(c => c.id.substring(0, 7)),
         resetDgraph: shouldResetDgraph,
+        deployType,
       });
 
       // Start deployment asynchronously
-      deployAsync(payload, shouldResetDgraph)
+      deployAsync(payload, shouldResetDgraph, deployType)
         .then((result) => {
           if (result.success) {
-            logger.info('Deployment completed successfully', { deliveryId });
+            logger.info(`Deployment completed successfully for ${refBranch}`, { deliveryId });
           } else {
             logger.error('Deployment failed', { deliveryId, error: result.error });
           }
@@ -120,6 +131,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         message: 'Webhook received, deployment started',
         repository: payload.repository.full_name,
         branch: refBranch,
+        deployType,
         commits: payload.commits.length,
         resetDgraph: shouldResetDgraph,
         deliveryId,
@@ -144,7 +156,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
 /**
  * Async deployment function
  */
-async function deployAsync(payload: GitHubPushEvent, shouldResetDgraph: boolean): Promise<DeploymentResult> {
+async function deployAsync(payload: GitHubPushEvent, shouldResetDgraph: boolean, deployType: 'main' | 'test' | 'none' = 'none'): Promise<DeploymentResult> {
   try {
     // Let deploy-server.sh handle git pull - avoids double-pull causing "no changes" early exit
     if (shouldResetDgraph) {
@@ -155,8 +167,22 @@ async function deployAsync(payload: GitHubPushEvent, shouldResetDgraph: boolean)
       }
     }
 
-    // Then run deployment
-    const deployResult = await deploy();
+    // Run deployment based on branch type
+    let deployResult: DeploymentResult;
+    
+    if (deployType === 'test') {
+      // Move branch - deploy test frontend to test.dlux.io
+      logger.info('Deploying test frontend from move branch');
+      deployResult = await deployTestFrontend();
+    } else if (deployType === 'main') {
+      // Main branch - deploy production frontend to dlux.io
+      logger.info('Deploying production frontend from main branch');
+      deployResult = await deployProdFrontend();
+    } else {
+      // Full deployment (all services) - legacy behavior
+      logger.info('Deploying all services');
+      deployResult = await deploy();
+    }
     
     return deployResult;
   } catch (error: any) {
